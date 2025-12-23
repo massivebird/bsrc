@@ -1,9 +1,10 @@
-use clap::Arg;
 use colored::{ColoredString, Colorize};
 use regex::Regex;
 use serde::Deserialize;
 use std::fs::exists;
 use std::{io::Read, path::PathBuf};
+
+mod cli;
 
 #[derive(Debug, Clone)]
 pub struct App {
@@ -45,27 +46,7 @@ const fn default_color() -> [u8; 3] {
 
 impl App {
     pub fn build() -> Self {
-        let matches = clap::command!()
-            .args([
-                Arg::new("query")
-                    .required(true)
-                    .hide(true)
-                    .value_name("PATTERN")
-                    .help("Regular expression query"),
-                Arg::new("root").value_name("PATH").hide(false).help("Query root location"),
-                Arg::new("all")
-                    .short('a')
-                    .long("all")
-                    .required(false)
-                    .conflicts_with("query")
-                    .action(clap::ArgAction::SetTrue)
-                    .help("Display all files"),
-                Arg::new("case_sensitive")
-                    .long("case-sensitive")
-                    .action(clap::ArgAction::SetTrue)
-                    .help("Execute query case sensitively"),
-            ])
-            .get_matches();
+        let matches = cli::build().get_matches();
 
         // Shortcut for retrieving a command line argument.
         let get_arg = |arg_name: &str| -> Option<&String> { matches.get_one::<String>(arg_name) };
@@ -90,7 +71,11 @@ impl App {
             })
         };
 
-        let mut f = std::fs::File::open("./bsrc.toml").unwrap();
+        let root = get_arg("root").map_or_else(|| std::env::current_dir().unwrap(), PathBuf::from);
+
+        let toml_path = root.join("bsrc.toml");
+
+        let mut f = std::fs::File::open(toml_path).unwrap();
         let mut buf = String::new();
         f.read_to_string(&mut buf).unwrap();
 
@@ -100,10 +85,6 @@ impl App {
                 panic!("{e}");
             }
         };
-
-        let root = get_arg("root").map_or_else(|| std::env::current_dir().unwrap(), PathBuf::from);
-
-        assert!(std::fs::File::open(root.join("bsrc.toml")).is_ok());
 
         for dir in &mut config.dirs {
             // Verify that this dir path exists.

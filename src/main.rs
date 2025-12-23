@@ -9,8 +9,6 @@ mod app;
 async fn main() {
     let app = app::App::build();
 
-    dbg!(&app);
-
     let mut handles = VecDeque::new();
 
     for dir in app.config.dirs.clone() {
