@@ -1,13 +1,13 @@
 clean = '\(.*\)' # Delete pattern from matches
 
 [[dirs]]
-display_name = "SNES"
+prefix = "SNES"
 color = [95,0,255]
 path = "snes"
 match_dirs = false
 
 [[dirs]]
-display_name = "GBA"
+prefix = "GBA"
 color = [255,175,255]
 path = "gba"
 match_dirs = false

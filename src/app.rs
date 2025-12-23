@@ -18,10 +18,18 @@ pub struct Config {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Dir {
-    pub display_name: String,
-    pub match_dirs: bool,
-    pub color: [u8; 3],
+    pub prefix: String,
     pub path: String,
+
+    #[serde(default)]
+    pub match_dirs: bool,
+
+    #[serde(default = "default_color")]
+    pub color: [u8; 3],
+}
+
+const fn default_color() -> [u8; 3] {
+    [255, 255, 255]
 }
 
 impl App {
