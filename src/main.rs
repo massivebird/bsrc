@@ -1,10 +1,9 @@
 use serde::Deserialize;
-use std::collections::HashMap;
 use std::io::Read;
 
 #[derive(Deserialize, Debug)]
 struct Config {
-    dirs: HashMap<String, Dir>,
+    dirs: Vec<Dir>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -20,6 +19,14 @@ fn main() {
     let mut buf = String::new();
     f.read_to_string(&mut buf).unwrap();
 
-    let config: Config = toml::from_str(&buf).unwrap();
-    dbg!(config);
+    let config: Config = match toml::from_str(&buf) {
+        Ok(c) => c,
+        Err(e) => {
+            panic!("{e}");
+        }
+    };
+
+    for dir in &config.dirs {
+        println!("{}", dir.display_name);
+    }
 }
