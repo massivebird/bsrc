@@ -1,10 +1,13 @@
-# display_name = "SNES"
-# color = [95,0,255]
-# path = "snes"
+g = 2
+
+[dirs.snes]
+display_name = "SNES"
+color = [95,0,255]
+path = "snes"
 match_dirs = false
 
-# [[dirs.gba]]
-# display_name = "GBA"
-# color = [255,175,255]
-# path = "gba"
-# match_dirs = false
+[dirs.gba]
+display_name = "GBA"
+color = [255,175,255]
+path = "gba"
+match_dirs = false
