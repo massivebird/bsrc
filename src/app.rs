@@ -2,6 +2,7 @@ use clap::Arg;
 use colored::{ColoredString, Colorize};
 use regex::Regex;
 use serde::Deserialize;
+use std::fs::exists;
 use std::{io::Read, path::PathBuf};
 
 #[derive(Debug, Clone)]
@@ -50,6 +51,7 @@ impl App {
                     .required(true)
                     .hide(true)
                     .help("Regular expression query"),
+                Arg::new("root").hide(true).help("Query root location"),
                 Arg::new("all")
                     .short('a')
                     .long("all")
@@ -98,8 +100,15 @@ impl App {
             }
         };
 
-        // Build colored prefixes.
+        let root = get_arg("root").map_or_else(|| std::env::current_dir().unwrap(), PathBuf::from);
+
+        assert!(std::fs::File::open(root.join("bsrc.toml")).is_ok());
+
         for dir in &mut config.dirs {
+            // Verify that this dir path exists.
+            assert!(exists(root.join(dir.path.clone())).is_ok_and(|b| b));
+
+            // Build colored prefixes.
             dir.color_prefix = dir
                 .raw_prefix
                 .truecolor(dir.color[0], dir.color[1], dir.color[2]);
@@ -122,9 +131,9 @@ impl App {
         };
 
         Self {
+            root,
             query,
             config,
-            root: PathBuf::from("/home/penguino/game-archive/"),
         }
     }
 }
