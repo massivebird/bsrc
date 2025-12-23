@@ -6,8 +6,8 @@ use self::app::{App, Dir};
 mod app;
 
 #[tokio::main]
-async fn main() {
-    let app = app::App::build();
+async fn main() -> eyre::Result<()> {
+    let app = app::App::build()?;
 
     let mut handles = VecDeque::new();
 
@@ -35,6 +35,8 @@ async fn main() {
             _ => "matches",
         }
     );
+
+    Ok(())
 }
 
 fn query_system(app: &App, dir: Dir) -> Vec<String> {

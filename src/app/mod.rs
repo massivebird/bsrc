@@ -1,4 +1,5 @@
 use colored::{ColoredString, Colorize};
+use eyre::Context;
 use regex::Regex;
 use serde::Deserialize;
 use std::fs::exists;
@@ -45,7 +46,7 @@ const fn default_color() -> [u8; 3] {
 }
 
 impl App {
-    pub fn build() -> Self {
+    pub fn build() -> Result<Self, eyre::Report> {
         let matches = cli::build().get_matches();
 
         // Shortcut for retrieving a command line argument.
@@ -75,7 +76,8 @@ impl App {
 
         let toml_path = root.join("bsrc.toml");
 
-        let mut f = std::fs::File::open(toml_path).unwrap();
+        let mut f = std::fs::File::open(&toml_path)
+            .wrap_err_with(|| format!("Failed to read config from {}", toml_path.display()))?;
         let mut buf = String::new();
         f.read_to_string(&mut buf).unwrap();
 
@@ -112,10 +114,10 @@ impl App {
             )
         };
 
-        Self {
+        Ok(Self {
             root,
             query,
             config,
-        }
+        })
     }
 }
