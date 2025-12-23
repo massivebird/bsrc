@@ -13,7 +13,7 @@ async fn main() -> eyre::Result<()> {
 
     for dir in app.config.dirs.clone() {
         let app = app.clone();
-        handles.push_back(tokio::spawn(async move { query_system(&app, dir) }));
+        handles.push_back(tokio::spawn(async move { query_dir(&app, dir) }));
     }
 
     let mut num_matches: u32 = 0;
@@ -39,7 +39,7 @@ async fn main() -> eyre::Result<()> {
     Ok(())
 }
 
-fn query_system(app: &App, dir: Dir) -> Vec<String> {
+fn query_dir(app: &App, dir: Dir) -> Vec<String> {
     let mut matches: Vec<String> = Vec::new();
 
     for entry in Path::new(&app.root.join(dir.path))

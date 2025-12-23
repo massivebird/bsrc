@@ -76,6 +76,7 @@ impl App {
 
         let mut f = std::fs::File::open(&toml_path)
             .wrap_err_with(|| format!("Failed to read config from {}", toml_path.display()))?;
+
         let mut buf = String::new();
         f.read_to_string(&mut buf).unwrap();
 
