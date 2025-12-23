@@ -6,6 +6,6 @@ match_dirs = false
 
 [[dirs]]
 display_name = "GBA"
-color = 5
+color = [255,175,255]
 path = "gba"
 match_dirs = false
