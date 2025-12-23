@@ -1,8 +1,8 @@
 use clap::Arg;
+use colored::{ColoredString, Colorize};
 use regex::Regex;
 use serde::Deserialize;
-use std::io::Read;
-use std::path::PathBuf;
+use std::{io::Read, path::PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct App {
@@ -18,14 +18,19 @@ pub struct Config {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Dir {
-    pub prefix: String,
     pub path: String,
+
+    #[serde(rename = "prefix")]
+    pub raw_prefix: String,
 
     #[serde(default)]
     pub match_dirs: bool,
 
     #[serde(default = "default_color")]
     pub color: [u8; 3],
+
+    #[serde(skip)]
+    pub color_prefix: ColoredString,
 }
 
 const fn default_color() -> [u8; 3] {
@@ -81,12 +86,19 @@ impl App {
         let mut buf = String::new();
         f.read_to_string(&mut buf).unwrap();
 
-        let config: Config = match toml::from_str(&buf) {
+        let mut config: Config = match toml::from_str(&buf) {
             Ok(c) => c,
             Err(e) => {
                 panic!("{e}");
             }
         };
+
+        // Build colored prefixes.
+        for dir in &mut config.dirs {
+            dir.color_prefix = dir
+                .raw_prefix
+                .truecolor(dir.color[0], dir.color[1], dir.color[2]);
+        }
 
         Self {
             query,

@@ -24,7 +24,7 @@ async fn main() {
         num_matches += u32::try_from(matches.len()).unwrap();
 
         for m in matches {
-            println!("{} - {m}", system.prefix);
+            println!("{} - {m}", system.color_prefix);
         }
     }
 
