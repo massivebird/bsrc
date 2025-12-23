@@ -50,8 +50,9 @@ impl App {
                 Arg::new("query")
                     .required(true)
                     .hide(true)
+                    .value_name("PATTERN")
                     .help("Regular expression query"),
-                Arg::new("root").hide(true).help("Query root location"),
+                Arg::new("root").value_name("PATH").hide(false).help("Query root location"),
                 Arg::new("all")
                     .short('a')
                     .long("all")
