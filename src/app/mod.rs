@@ -66,10 +66,8 @@ impl App {
                 "(?i)"
             };
 
-            Regex::new(&format!("{opts}{raw_query}")).unwrap_or_else(|e| {
-                eprintln!("{e}");
-                std::process::exit(1);
-            })
+            Regex::new(&format!("{opts}{raw_query}"))
+                .wrap_err_with(|| "Failed to parse query expression.".to_string())?
         };
 
         let root = get_arg("root").map_or_else(|| std::env::current_dir().unwrap(), PathBuf::from);
@@ -100,18 +98,13 @@ impl App {
 
         // Build clean regex.
         config.clean = {
-            config.raw_clean.as_ref().map_or_else(
-                || None, // No field specified.
-                |pattern| {
-                    Regex::new(&format!("(?i){pattern}")).map_or_else(
-                        |e| {
-                            eprintln!("{e}");
-                            std::process::exit(1);
-                        },
-                        Some,
-                    )
-                },
-            )
+            match config.raw_clean {
+                Some(ref pattern) => Some(
+                    Regex::new(&format!("(?i){pattern}"))
+                        .wrap_err("Failed to parse `clean` regex pattern from config file.")?,
+                ),
+                None => None,
+            }
         };
 
         Ok(Self {
