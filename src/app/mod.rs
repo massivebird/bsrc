@@ -20,8 +20,13 @@ pub struct Config {
 
     #[serde(rename = "clean")]
     raw_clean: Option<String>,
+    #[serde(rename = "ignore")]
+    raw_ignore: Option<String>,
+
     #[serde(skip)]
     pub clean: Option<Regex>,
+    #[serde(skip)]
+    pub ignore: Option<Regex>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -103,6 +108,17 @@ impl App {
                 Some(ref pattern) => Some(
                     Regex::new(&format!("(?i){pattern}"))
                         .wrap_err("Failed to parse `clean` regex pattern from config file.")?,
+                ),
+                None => None,
+            }
+        };
+
+        // Build ignore regex.
+        config.ignore = {
+            match config.raw_ignore {
+                Some(ref pattern) => Some(
+                    Regex::new(&format!("(?i){pattern}"))
+                        .wrap_err("Failed to parse `ignore` regex pattern from config file.")?,
                 ),
                 None => None,
             }

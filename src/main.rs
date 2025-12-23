@@ -46,7 +46,6 @@ fn query_dir(app: &App, dir: Dir) -> Vec<String> {
         .read_dir()
         .unwrap()
         .filter_map(Result::ok)
-    // .filter(is_not_bios_dir)
     {
         if dir.match_dirs && entry.path().is_file() || !dir.match_dirs && entry.path().is_dir() {
             continue;
@@ -61,6 +60,15 @@ fn query_dir(app: &App, dir: Dir) -> Vec<String> {
 
             stem.to_string_lossy()
         };
+
+        if app
+            .config
+            .ignore
+            .as_ref()
+            .is_some_and(|r| r.is_match(&filename))
+        {
+            continue;
+        }
 
         // Apply cleaning based on user-specified pattern.
         // e.g. "Pokemon Snap (USA).n64" -> "Pokemon Snap"
