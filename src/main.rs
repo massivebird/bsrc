@@ -1,7 +1,5 @@
-use std::collections::VecDeque;
-use std::path::Path;
-
 use self::app::{App, Dir};
+use std::{collections::VecDeque, path::Path};
 
 mod app;
 

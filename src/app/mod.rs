@@ -2,8 +2,7 @@ use colored::{ColoredString, Colorize};
 use eyre::Context;
 use regex::Regex;
 use serde::Deserialize;
-use std::fs::exists;
-use std::{io::Read, path::PathBuf};
+use std::{fs::exists, io::Read, path::PathBuf};
 
 mod cli;
 
