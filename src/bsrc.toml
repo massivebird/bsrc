@@ -1,3 +1,5 @@
+clean = '\(.*\)' # Delete pattern from matches
+
 [[dirs]]
 display_name = "SNES"
 color = [95,0,255]
