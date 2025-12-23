@@ -11,20 +11,20 @@ async fn main() {
 
     let mut handles = VecDeque::new();
 
-    for system in app.config.dirs.clone() {
+    for dir in app.config.dirs.clone() {
         let app = app.clone();
-        handles.push_back(tokio::spawn(async move { query_system(&app, system) }));
+        handles.push_back(tokio::spawn(async move { query_system(&app, dir) }));
     }
 
     let mut num_matches: u32 = 0;
 
-    for system in app.config.dirs {
+    for dir in app.config.dirs {
         let matches = handles.pop_front().unwrap().await.unwrap();
 
         num_matches += u32::try_from(matches.len()).unwrap();
 
         for m in matches {
-            println!("{} - {m}", system.color_prefix);
+            println!("{} - {m}", dir.color_prefix);
         }
     }
 
@@ -40,9 +40,7 @@ async fn main() {
 fn query_system(app: &App, dir: Dir) -> Vec<String> {
     let mut matches: Vec<String> = Vec::new();
 
-    let system_path = app.root.join(dir.path);
-
-    for entry in Path::new(&system_path)
+    for entry in Path::new(&app.root.join(dir.path))
         .read_dir()
         .unwrap()
         .filter_map(Result::ok)
@@ -62,11 +60,16 @@ fn query_system(app: &App, dir: Dir) -> Vec<String> {
             stem.to_string_lossy()
         };
 
-        // TODO: Apply cleaning.
+        // Apply cleaning based on user-specified pattern.
         // e.g. "Pokemon Snap (USA).n64" -> "Pokemon Snap"
+        let filename = if let Some(re) = &app.config.clean {
+            re.replace_all(&filename, "")
+        } else {
+            filename
+        };
 
         if app.query.is_match(&filename) {
-            matches.push(filename.to_string());
+            matches.push(filename.trim().to_string());
         }
     }
 

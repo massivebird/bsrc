@@ -14,6 +14,11 @@ pub struct App {
 #[derive(Deserialize, Clone, Debug)]
 pub struct Config {
     pub dirs: Vec<Dir>,
+
+    #[serde(rename = "clean")]
+    raw_clean: Option<String>,
+    #[serde(skip)]
+    pub clean: Option<Regex>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -99,6 +104,22 @@ impl App {
                 .raw_prefix
                 .truecolor(dir.color[0], dir.color[1], dir.color[2]);
         }
+
+        // Build clean regex.
+        config.clean = {
+            config.raw_clean.as_ref().map_or_else(
+                || None, // No field specified.
+                |pattern| {
+                    Regex::new(&format!("(?i){pattern}")).map_or_else(
+                        |e| {
+                            eprintln!("{e}");
+                            std::process::exit(1);
+                        },
+                        Some,
+                    )
+                },
+            )
+        };
 
         Self {
             query,
