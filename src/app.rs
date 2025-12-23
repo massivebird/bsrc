@@ -36,7 +36,10 @@ impl App {
         // Shortcut for retrieving a command line argument.
         let get_arg = |arg_name: &str| -> Option<&String> { matches.get_one::<String>(arg_name) };
 
-        let query = Regex::new(get_arg("query").unwrap()).unwrap();
+        let query = Regex::new(get_arg("query").unwrap()).unwrap_or_else(|e| {
+            eprintln!("{e}");
+            std::process::exit(1);
+        });
 
         let mut f = std::fs::File::open("./bsrc.toml").unwrap();
         let mut buf = String::new();
