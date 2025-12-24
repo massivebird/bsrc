@@ -24,8 +24,8 @@ pub fn build() -> clap::Command {
         .next_help_heading("Positional arguments")
         .args([
             Arg::new("query")
-                .required(true)
                 .value_name("PATTERN")
+                .required_unless_present("all")
                 .help("A regular expression query."),
             Arg::new("root")
                 .value_name("PATH")
@@ -37,7 +37,6 @@ pub fn build() -> clap::Command {
                 .short('a')
                 .long("all")
                 .required(false)
-                .conflicts_with("query")
                 .action(clap::ArgAction::SetTrue)
                 .help("Display all files")
                 .long_help("Displays all files. Equivalent to the regex query \".\""),

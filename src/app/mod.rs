@@ -76,10 +76,16 @@ impl App {
                 .wrap_err_with(|| "Failed to parse query expression.".to_string())?
         };
 
-        let root = get_arg("root").map_or(
-            std::env::current_dir().wrap_err("Failed to retrieve current directory.")?,
-            PathBuf::from,
-        );
+        // Trying to handle `--all` with a path argument, where the path is
+        // stored in the `query` positional argument. Copy it over.
+        let root = if matches.get_flag("all") && get_arg("query").is_some() {
+            PathBuf::from(get_arg("query").unwrap())
+        } else {
+            get_arg("root").map_or(
+                std::env::current_dir().wrap_err("Failed to retrieve current directory.")?,
+                PathBuf::from,
+            )
+        };
 
         let toml_path = root.join("bsrc.toml");
 
