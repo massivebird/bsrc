@@ -51,24 +51,30 @@ For more information, run `bsrc --help`.
 
 <h3 id="customization">Configuration</h3>
 
-bsrc reads data from `bsrc.toml`.
+bsrc is configured with `bsrc.toml`.
 
 Here is an example configuration:
 
 ```toml
 # ./archive/bsrc.toml
 
-# Delete regex pattern from matches.
-# e.g. '\(.*\)' produces "Metal Gear (USA)" -> "Metal Gear"
-clean = '\(.*\)'
+# Remove pattern from match names. Optional.
+# e.g. '\(.*\)' produces "Metal (USA, EUR)" -> "Metal"
+clean = '\(.*\)' 
+                 
+# Ignore files based on a regex pattern. Optional.
+# e.g. '^\.' prevents matching files like `.bios`
+ignore = '^\.'
 
-[[dirs]]
+# Directory header format: dirs.<unique-id>
+[dirs.snes]
 prefix = "SNES"
-color = [95,0,255]
 path = "snes" # ./archive/snes/
-match_dirs = false
+# Optional fields:
+color = [95,0,255] # prefix color
+match_dirs = false # if true, matches directories instead of files
 
-[[dirs]]
+[dirs.gba]
 prefix = "GBA"
 color = [255,175,255]
 path = "gba" # ./archive/gba/
