@@ -1,7 +1,7 @@
 # bsrc
 > short for "bespoke search"
 
-A customizable and fast file querying utility!
+A customizable file search utility!
 
 🦀 written in Rust
 
@@ -9,9 +9,15 @@ A customizable and fast file querying utility!
 <!--   <img width="75%" src="https://imgur.com/b8hfzFN.gif" /> -->
 <!-- </p> -->
 
-## How does bsrc work?
+## Elevator pitch
 
-By providing bsrc with predefined paths, bsrc knows exactly which directories your queries should (and shouldn't) search. This makes queries inexpensive and blazingly fast.
+Native OS file searching is slow, unordered, and difficult to customize. bsrc solves all of that.
+
+bsrc searches for file/directory names using a regex pattern, _only_ in paths defined in a TOML config file (see: [Configuration](#config)). This results in fast, inexpensive, and uncluttered searches!
+
+bsrc's suite of command line options also let you customize search and output behavior on the fly.
+
+bsrc is especially great for large archives or libraries of games, music, or books!
 
 ## Building
 
@@ -49,7 +55,7 @@ bsrc <query>
 
 For more information, run `bsrc --help`.
 
-<h3 id="customization">Configuration</h3>
+<h3 id="config">Configuration</h3>
 
 bsrc is configured with `bsrc.toml`.
 
