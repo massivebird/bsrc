@@ -2,7 +2,7 @@ use colored::{ColoredString, Colorize};
 use eyre::Context;
 use regex::Regex;
 use serde::Deserialize;
-use std::{fs::exists, io::Read, path::PathBuf};
+use std::{collections::HashMap, fs::exists, io::Read, path::PathBuf};
 
 mod cli;
 
@@ -15,7 +15,7 @@ pub struct App {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Config {
-    pub dirs: Vec<Dir>,
+    pub dirs: HashMap<String, Dir>,
 
     #[serde(rename = "clean")]
     raw_clean: Option<String>,
@@ -91,7 +91,7 @@ impl App {
             }
         };
 
-        for dir in &mut config.dirs {
+        for dir in config.dirs.values_mut() {
             // Verify that this dir path exists.
             assert!(exists(root.join(dir.path.clone())).is_ok_and(|b| b));
 

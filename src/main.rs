@@ -9,14 +9,14 @@ async fn main() -> eyre::Result<()> {
 
     let mut handles = VecDeque::new();
 
-    for dir in app.config.dirs.clone() {
+    for (_id, dir) in app.config.dirs.clone() {
         let app = app.clone();
         handles.push_back(tokio::spawn(async move { query_dir(&app, dir) }));
     }
 
     let mut num_matches: u32 = 0;
 
-    for dir in app.config.dirs {
+    for dir in app.config.dirs.values() {
         let matches = handles.pop_front().unwrap().await.unwrap();
 
         num_matches += u32::try_from(matches.len()).unwrap();
