@@ -122,27 +122,25 @@ impl App {
                 .collect();
         }
 
-        // Build clean regex.
-        config.clean = {
-            match config.raw_clean {
-                Some(ref pattern) => Some(
-                    Regex::new(&format!("(?i){pattern}"))
-                        .wrap_err("Failed to parse `clean` regex pattern from config file.")?,
-                ),
-                None => None,
-            }
-        };
+        // Parses a regex field from the TOML config.
+        // The `toml` crate doesn't know what regex is, so this is how I
+        // convert the string into a regex object.
+        macro_rules! get_regex_field {
+            ($internal: ident, $external: ident) => {{
+                match config.$internal {
+                    Some(ref pattern) => {
+                        Some(Regex::new(&format!("(?i){pattern}")).wrap_err(format!(
+                            "Failed to parse `{}` regex pattern from config file.",
+                            stringify!($external)
+                        ))?)
+                    }
+                    None => None,
+                }
+            }};
+        }
 
-        // Build ignore regex.
-        config.ignore = {
-            match config.raw_ignore {
-                Some(ref pattern) => Some(
-                    Regex::new(&format!("(?i){pattern}"))
-                        .wrap_err("Failed to parse `ignore` regex pattern from config file.")?,
-                ),
-                None => None,
-            }
-        };
+        config.clean = get_regex_field!(raw_clean, clean);
+        config.ignore = get_regex_field!(raw_ignore, ignore);
 
         Ok(Self {
             root,
