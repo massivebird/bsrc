@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
++ Added `output_fmt` config field for customizable output formatting. (#8)
 + Added `bsrc completions <shell>` subcommand for generating shell completion files.
 
 ## [0.1.1] - 2025-12-24
