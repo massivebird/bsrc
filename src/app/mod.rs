@@ -18,7 +18,7 @@ pub struct App {
 pub struct Config {
     pub dirs: HashMap<String, Dir>,
     #[serde(default = "default_fmt")]
-    pub output_fmt: Option<String>,
+    pub output_fmt: String,
 
     #[serde(rename = "clean")]
     raw_clean: Option<String>,
@@ -48,8 +48,8 @@ pub struct Dir {
     pub color_prefix: ColoredString,
 }
 
-fn default_fmt() -> Option<String> {
-    Some("%p: %f".to_owned())
+fn default_fmt() -> String {
+    "%p: %f".to_owned()
 }
 
 const fn default_color() -> [u8; 3] {

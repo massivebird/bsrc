@@ -26,16 +26,18 @@ async fn main() -> eyre::Result<()> {
         num_matches += u32::try_from(matches.len()).unwrap();
 
         for m in matches {
-            let result = fmt_re.replace_all(
-                app.config.output_fmt.as_ref().unwrap(),
-                |caps: &regex::Captures| match &caps[0] {
-                    "%p" => dir.color_prefix.to_string(),
-                    "%f" => m.clone(),
-                    _ => String::new(),
-                },
-            );
+            // Replace all placeholders in the output format string with their
+            // appropriate values.
+            let output =
+                fmt_re.replace_all(app.config.output_fmt.as_ref(), |caps: &regex::Captures| {
+                    match &caps[0] {
+                        "%p" => dir.color_prefix.to_string(),
+                        "%f" => m.clone(),
+                        _ => String::new(),
+                    }
+                });
 
-            println!("{result}");
+            println!("{output}");
         }
     }
 
