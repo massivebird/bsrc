@@ -64,13 +64,18 @@ Here is an example configuration:
 ```toml
 # ./archive/bsrc.toml
 
-# Remove pattern from match names. Optional.
+# Optional: remove pattern from match names.
 # e.g. '\(.*\)' produces "Metal (USA, EUR)" -> "Metal"
 clean = '\(.*\)' 
                  
-# Ignore files based on a regex pattern. Optional.
+# Optional: ignore files based on a regex pattern.
 # e.g. '^\.' prevents matching files like `.bios`
 ignore = '^\.'
+
+# Optional: custom output format.
+# `%p`: prefix
+# `%f`: matching file
+output_fmt = '%p :: %f'
 
 # Directory header format: dirs.<unique-id>
 [dirs.snes]
