@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 clap = { version = "4.5.53", features = ["cargo", "wrap_help"] }
+clap_complete_command = "0.6.1"
 colored = "3.0.0"
 eyre = "0.6.12"
 regex = "1.12.2"

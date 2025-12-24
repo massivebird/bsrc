@@ -21,6 +21,19 @@ Excludes specified directories from the search. See `-o/--only`.";
 
 pub fn build() -> clap::Command {
     clap::command!()
+        .args_conflicts_with_subcommands(true)
+        .subcommand(
+            clap::Command::new("completions")
+                .about("Generate shell completions")
+                .arg(
+                    Arg::new("shell")
+                        .required(true)
+                        .value_name("shell")
+                        .value_parser(
+                            clap::builder::EnumValueParser::<clap_complete_command::Shell>::new(),
+                        ),
+                ),
+        )
         .next_help_heading("Positional arguments")
         .args([
             Arg::new("query")

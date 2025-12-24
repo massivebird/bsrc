@@ -54,6 +54,19 @@ impl App {
     pub fn build() -> Result<Self, eyre::Report> {
         let matches = cli::build().get_matches();
 
+        // Generate CLI completions if prompted, then exit.
+        if let Some(sub_matches) = matches.subcommand_matches("completions") {
+            let shell = sub_matches
+                .get_one::<clap_complete_command::Shell>("shell")
+                .unwrap();
+
+            let mut cli = cli::build();
+
+            shell.generate(&mut cli, &mut std::io::stdout());
+
+            std::process::exit(0);
+        }
+
         // Shortcut for retrieving a command line argument.
         let get_arg = |arg_name: &str| -> Option<&String> { matches.get_one::<String>(arg_name) };
 
