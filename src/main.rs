@@ -26,6 +26,10 @@ async fn main() -> eyre::Result<()> {
         }
     }
 
+    if app.no_count_output {
+        return Ok(());
+    }
+
     println!(
         "{num_matches} {noun} found.",
         noun = match num_matches {

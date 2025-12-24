@@ -11,6 +11,7 @@ pub struct App {
     pub root: PathBuf,
     pub query: Regex,
     pub config: Config,
+    pub no_count_output: bool,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -142,6 +143,7 @@ impl App {
             root,
             query,
             config,
+            no_count_output: matches.get_flag("no_count")
         })
     }
 }

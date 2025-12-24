@@ -61,4 +61,10 @@ pub fn build() -> clap::Command {
                 .help("Exclude directories from search, specified by ID.")
                 .long_help(EXCLUDE_LONG_HELP),
         ])
+        .next_help_heading("Output settings")
+        .args([Arg::new("no_count")
+            .long("no-count")
+            // .conflicts_with("count")
+            .action(clap::ArgAction::SetTrue)
+            .help("Suppress match count message.")])
 }
