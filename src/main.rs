@@ -18,21 +18,22 @@ async fn main() -> eyre::Result<()> {
 
     let mut num_matches: u32 = 0;
 
+    let fmt_re = Regex::new(r"%[pf]").unwrap();
+
     for dir in app.config.dirs.values() {
         let matches = handles.pop_front().unwrap().await.unwrap();
 
         num_matches += u32::try_from(matches.len()).unwrap();
 
         for m in matches {
-            let re = Regex::new(r"%[pf]").unwrap();
-
-            let input = "%p :: %f";
-
-            let result = re.replace_all(input, |caps: &regex::Captures| match &caps[0] {
-                "%p" => dir.color_prefix.to_string(),
-                "%f" => m.clone(),
-                _ => String::new(),
-            });
+            let result = fmt_re.replace_all(
+                app.config.output_fmt.as_ref().unwrap(),
+                |caps: &regex::Captures| match &caps[0] {
+                    "%p" => dir.color_prefix.to_string(),
+                    "%f" => m.clone(),
+                    _ => String::new(),
+                },
+            );
 
             println!("{result}");
         }
