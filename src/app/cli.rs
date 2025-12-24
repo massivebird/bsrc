@@ -27,5 +27,19 @@ Must contain a valid `bsrc.toml` at its root.",
                 .long("case-sensitive")
                 .action(clap::ArgAction::SetTrue)
                 .help("Execute query case sensitively"),
+            Arg::new("only")
+                .short('o')
+                .long("only")
+                .value_name("IDs")
+                .help("Only search directories specified by ID.")
+                .long_help("Only searches directories with the provided IDs. In the TOML config, directory IDs are in each directory header: `[dirs.<id>]`.
+
+Examples:
+
+# Only search directory with ID \"gba\".
+bsrc --only gba \"metal\"
+
+# Supports multiple comma-separated IDs.
+bsrc --only gba,snes,ds \"metal\""),
         ])
 }

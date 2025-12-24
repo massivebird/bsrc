@@ -101,6 +101,15 @@ impl App {
                 .truecolor(dir.color[0], dir.color[1], dir.color[2]);
         }
 
+        // Optionally filter directories.
+        if let Some(ids) = get_arg("only") {
+            config.dirs = config
+                .dirs
+                .into_iter()
+                .filter(|d| ids.contains(&d.0))
+                .collect();
+        }
+
         // Build clean regex.
         config.clean = {
             match config.raw_clean {
