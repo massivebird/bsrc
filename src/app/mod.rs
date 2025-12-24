@@ -1,5 +1,5 @@
 use colored::{ColoredString, Colorize};
-use eyre::Context;
+use eyre::{Context, OptionExt};
 use regex::Regex;
 use serde::Deserialize;
 use std::{collections::HashMap, fs::exists, io::Read, path::PathBuf};
@@ -61,7 +61,8 @@ impl App {
             let raw_query = if matches.get_flag("all") {
                 "."
             } else {
-                get_arg("query").unwrap()
+                get_arg("query")
+                    .ok_or_eyre("Internal error: failed to retrieve `query` argument.")?
             };
 
             // Default to case-insensitive
@@ -75,7 +76,10 @@ impl App {
                 .wrap_err_with(|| "Failed to parse query expression.".to_string())?
         };
 
-        let root = get_arg("root").map_or_else(|| std::env::current_dir().unwrap(), PathBuf::from);
+        let root = get_arg("root").map_or(
+            std::env::current_dir().wrap_err("Failed to retrieve current directory.")?,
+            PathBuf::from,
+        );
 
         let toml_path = root.join("bsrc.toml");
 
@@ -83,7 +87,8 @@ impl App {
             .wrap_err_with(|| format!("Failed to read config from {}", toml_path.display()))?;
 
         let mut buf = String::new();
-        f.read_to_string(&mut buf).unwrap();
+        f.read_to_string(&mut buf)
+            .wrap_err("Failed to read contents of TOML config file.")?;
 
         let mut config: Config = match toml::from_str(&buf) {
             Ok(c) => c,
@@ -143,7 +148,7 @@ impl App {
             root,
             query,
             config,
-            no_count_output: matches.get_flag("no_count")
+            no_count_output: matches.get_flag("no_count"),
         })
     }
 }
