@@ -108,6 +108,12 @@ impl App {
                 .into_iter()
                 .filter(|d| ids.contains(&d.0))
                 .collect();
+        } else if let Some(ids) = get_arg("exclude") {
+            config.dirs = config
+                .dirs
+                .into_iter()
+                .filter(|d| !ids.contains(&d.0))
+                .collect();
         }
 
         // Build clean regex.

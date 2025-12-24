@@ -16,6 +16,9 @@ bsrc --only gba \"metal\"
 # Supports multiple comma-separated IDs.
 bsrc --only gba,snes,ds \"metal\"";
 
+static EXCLUDE_LONG_HELP: &str = "\
+Excludes specified directories from the search. See `-o/--only`.";
+
 pub fn build() -> clap::Command {
     clap::command!()
         .next_help_heading("Positional arguments")
@@ -46,7 +49,16 @@ pub fn build() -> clap::Command {
                 .short('o')
                 .long("only")
                 .value_name("IDs")
+                .conflicts_with("exclude")
                 .help("Only search directories specified by ID.")
                 .long_help(ONLY_LONG_HELP),
+            Arg::new("exclude")
+                .short('e')
+                .long("exclude")
+                .visible_alias("not")
+                .conflicts_with("only")
+                .value_name("IDs")
+                .help("Exclude directories from search, specified by ID.")
+                .long_help(EXCLUDE_LONG_HELP),
         ])
 }
