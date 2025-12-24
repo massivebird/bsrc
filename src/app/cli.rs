@@ -59,6 +59,14 @@ pub fn build() -> clap::Command {
                 .value_name("IDs")
                 .help("Exclude directories from search, specified by ID.")
                 .long_help(EXCLUDE_LONG_HELP),
+            Arg::new("no_ignore")
+                .long("no-ignore")
+                .action(clap::ArgAction::SetTrue)
+                .help("Do not apply config's `ignore` pattern."),
+            Arg::new("no_clean")
+                .long("no-clean")
+                .action(clap::ArgAction::SetTrue)
+                .help("Do not apply config's `clean` pattern."),
         ])
         .next_help_heading("Output settings")
         .args([Arg::new("no_count")

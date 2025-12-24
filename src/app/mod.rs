@@ -145,8 +145,17 @@ impl App {
             }};
         }
 
-        config.clean = get_regex_field!(raw_clean, clean);
-        config.ignore = get_regex_field!(raw_ignore, ignore);
+        config.clean = if matches.get_flag("no_clean") {
+            None
+        } else {
+            get_regex_field!(raw_clean, clean)
+        };
+
+        config.ignore = if matches.get_flag("no_ignore") {
+            None
+        } else {
+            get_regex_field!(raw_ignore, ignore)
+        };
 
         Ok(Self {
             root,
