@@ -1,7 +1,7 @@
 use colored::{ColoredString, Colorize};
 use eyre::{Context, OptionExt};
 use regex::Regex;
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, de::Error};
 use std::{collections::HashMap, fs::exists, io::Read, path::PathBuf};
 
 mod cli;
@@ -54,10 +54,32 @@ pub struct Dir {
     pub match_dirs: bool,
 
     #[serde(default = "default_color")]
+    #[serde(deserialize_with = "deserialize_hex")]
     pub color: [u8; 3],
 
     #[serde(skip)]
     pub color_prefix: ColoredString,
+}
+
+fn deserialize_hex<'de, D>(deserializer: D) -> Result<[u8; 3], D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let mut buf = &String::deserialize(deserializer)?[..];
+
+    buf = buf.strip_prefix('#').unwrap();
+
+    if buf.len() != 6 {
+        return Err(serde::de::Error::custom(toml::de::Error::custom(
+            "Unexpected hex color format. Example: \"#33AABB\"",
+        )));
+    }
+
+    Ok([
+        u8::from_str_radix(&buf[0..=1], 16).map_err(serde::de::Error::custom)?,
+        u8::from_str_radix(&buf[2..=3], 16).map_err(serde::de::Error::custom)?,
+        u8::from_str_radix(&buf[4..=5], 16).map_err(serde::de::Error::custom)?,
+    ])
 }
 
 const fn default_color() -> [u8; 3] {
@@ -130,11 +152,13 @@ impl App {
             }
         };
 
-        for dir in config.dirs.values_mut() {
-            // Verify that this dir path exists.
-            assert!(exists(root.join(dir.path.clone())).is_ok_and(|b| b));
+        // Filter non-existent directories.
+        config
+            .dirs
+            .retain(|_id, dir| exists(root.join(dir.path.clone())).is_ok_and(|b| b));
 
-            // Build colored prefixes.
+        // Build colored prefixes.
+        for dir in config.dirs.values_mut() {
             dir.color_prefix = dir
                 .raw_prefix
                 .truecolor(dir.color[0], dir.color[1], dir.color[2]);
