@@ -67,7 +67,7 @@ where
 {
     let mut buf = &String::deserialize(deserializer)?[..];
 
-    buf = buf.strip_prefix('#').unwrap();
+    buf = buf.trim_start_matches('#');
 
     if buf.len() != 6 {
         return Err(serde::de::Error::custom(toml::de::Error::custom(
