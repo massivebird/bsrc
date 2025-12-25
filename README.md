@@ -74,20 +74,18 @@ ignore = '^\.'
 
 # Optional: custom output format.
 # `%p`: prefix
-# `%f`: matching file
+# `%f`: matching filename
 output_fmt = '%p :: %f'
 
-# Directory header format: dirs.<unique-id>
-[dirs.snes]
+[dirs.snes] # dirs.<unique-id>
 prefix = "SNES"
-path = "snes" # ./archive/snes/
-# Optional fields:
-color = [95,0,255] # prefix color
-match_dirs = false # if true, matches directories instead of files
+path = "snes"
+color = "#5930cc"  # Optional: prefix color in hex format
+match_dirs = false # Optional: if true, matches directories instead of files
 
-[dirs.gba]
-prefix = "GBA"
-color = [255,175,255]
-path = "gba" # ./archive/gba/
+[dirs.wii]
+prefix = "WII"
+path = "wbfs"
+color = "#0cab30"
 match_dirs = false
 ```
