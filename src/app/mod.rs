@@ -1,7 +1,7 @@
 use colored::{ColoredString, Colorize};
 use eyre::{Context, OptionExt};
 use regex::Regex;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use std::{collections::HashMap, fs::exists, io::Read, path::PathBuf};
 
 mod cli;
@@ -17,18 +17,30 @@ pub struct App {
 #[derive(Deserialize, Clone, Debug)]
 pub struct Config {
     pub dirs: HashMap<String, Dir>,
+
     #[serde(default = "default_fmt")]
     pub output_fmt: String,
 
-    #[serde(rename = "clean")]
-    raw_clean: Option<String>,
-    #[serde(rename = "ignore")]
-    raw_ignore: Option<String>,
-
-    #[serde(skip)]
+    #[serde(deserialize_with = "deserialize_regex")]
+    #[serde(default)]
     pub clean: Option<Regex>,
-    #[serde(skip)]
+
+    #[serde(deserialize_with = "deserialize_regex")]
+    #[serde(default)]
     pub ignore: Option<Regex>,
+}
+
+fn deserialize_regex<'de, D>(deserializer: D) -> Result<Option<Regex>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let buf = String::deserialize(deserializer)?;
+
+    Regex::new(&buf).map_err(serde::de::Error::custom).map(Some)
+}
+
+fn default_fmt() -> String {
+    "%p: %f".to_owned()
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -46,10 +58,6 @@ pub struct Dir {
 
     #[serde(skip)]
     pub color_prefix: ColoredString,
-}
-
-fn default_fmt() -> String {
-    "%p: %f".to_owned()
 }
 
 const fn default_color() -> [u8; 3] {
@@ -146,35 +154,6 @@ impl App {
                 .filter(|d| !ids.contains(&d.0))
                 .collect();
         }
-
-        // Parses a regex field from the TOML config.
-        // The `toml` crate doesn't know what regex is, so this is how I
-        // convert the string into a regex object.
-        macro_rules! get_regex_field {
-            ($internal: ident, $external: ident) => {{
-                match config.$internal {
-                    Some(ref pattern) => {
-                        Some(Regex::new(&format!("(?i){pattern}")).wrap_err(format!(
-                            "Failed to parse `{}` regex pattern from config file.",
-                            stringify!($external)
-                        ))?)
-                    }
-                    None => None,
-                }
-            }};
-        }
-
-        config.clean = if matches.get_flag("no_clean") {
-            None
-        } else {
-            get_regex_field!(raw_clean, clean)
-        };
-
-        config.ignore = if matches.get_flag("no_ignore") {
-            None
-        } else {
-            get_regex_field!(raw_ignore, ignore)
-        };
 
         Ok(Self {
             root,
