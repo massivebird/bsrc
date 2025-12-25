@@ -77,18 +77,21 @@ fn query_dir(app: &App, dir: Dir) -> Vec<String> {
             stem.to_string_lossy()
         };
 
-        if app
-            .config
-            .ignore
-            .as_ref()
-            .is_some_and(|r| r.is_match(&filename))
+        if !app.no_ignore
+            && app
+                .config
+                .ignore
+                .as_ref()
+                .is_some_and(|r| r.is_match(&filename))
         {
             continue;
         }
 
         // Apply cleaning based on user-specified pattern.
         // e.g. "Pokemon Snap (USA).n64" -> "Pokemon Snap"
-        let filename = if let Some(re) = &app.config.clean {
+        let filename = if let Some(re) = &app.config.clean
+            && !app.no_clean
+        {
             re.replace_all(&filename, "")
         } else {
             filename

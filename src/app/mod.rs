@@ -18,6 +18,8 @@ pub struct App {
     pub query: Regex,
     pub config: Config,
     pub no_count_output: bool,
+    pub no_clean: bool,
+    pub no_ignore: bool,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -189,6 +191,8 @@ impl App {
             query,
             config,
             no_count_output: matches.get_flag("no_count"),
+            no_clean: matches.get_flag("no_clean"),
+            no_ignore: matches.get_flag("no_ignore"),
         })
     }
 }
