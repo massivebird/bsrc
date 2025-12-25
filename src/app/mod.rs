@@ -2,7 +2,13 @@ use colored::{ColoredString, Colorize};
 use eyre::{Context, OptionExt};
 use regex::Regex;
 use serde::{Deserialize, Deserializer, de::Error};
-use std::{borrow::Cow, collections::HashMap, fs::exists, io::Read, path::PathBuf};
+use std::{
+    borrow::Cow,
+    collections::HashMap,
+    fs::exists,
+    io::Read,
+    path::{Path, PathBuf},
+};
 
 mod cli;
 
@@ -135,7 +141,7 @@ impl App {
             )
         };
 
-        let toml_path = root.join("bsrc.toml");
+        let toml_path: PathBuf = find_toml_path(&root)?;
 
         let mut f = std::fs::File::open(&toml_path)
             .wrap_err_with(|| format!("Failed to read config from {}", toml_path.display()))?;
@@ -185,4 +191,36 @@ impl App {
             no_count_output: matches.get_flag("no_count"),
         })
     }
+}
+
+/// Searches for `bsrc.toml` in root and (some) parent directories.
+fn find_toml_path(root: &Path) -> eyre::Result<PathBuf> {
+    let mut root = root;
+
+    if exists(root.join("bsrc.toml")).is_ok_and(|b| b) {
+        return Ok(root.join("bsrc.toml"));
+    }
+
+    eprintln!(
+        "{}: Searching for bsrc.toml in parent directories...",
+        "WARN".yellow()
+    );
+
+    for _ in 0..4 {
+        let maybe_toml = root.join("bsrc.toml");
+
+        if exists(&maybe_toml).is_ok_and(|b| b) {
+            return Ok(maybe_toml);
+        }
+
+        if let Some(upwards) = root.parent() {
+            root = upwards;
+        } else {
+            break;
+        }
+    }
+
+    Err(eyre::eyre!(
+        "Failed to locate `bsrc.toml` in current or parent directories."
+    ))
 }
