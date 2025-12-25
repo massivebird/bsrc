@@ -7,14 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.1] - Unreleased
 
-### Fixed
+### Added
 
-+ Hotfixed `--no-clean` option.
-+ Hotfixed `--no-ignore` option.
++ Added a warning if a directory path does not exist.
 
 ### Changed
 
 + Changed `bsrc.toml` searching behavior, now searches in parent directories if config cannot be found. (#15)
+
+### Fixed
+
++ Hotfixed `--no-clean` option.
++ Hotfixed `--no-ignore` option.
 
 ## [0.2.0] - 2025-12-25
 
