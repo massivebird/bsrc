@@ -2,7 +2,7 @@ use colored::{ColoredString, Colorize};
 use eyre::{Context, OptionExt};
 use regex::Regex;
 use serde::{Deserialize, Deserializer, de::Error};
-use std::{collections::HashMap, fs::exists, io::Read, path::PathBuf};
+use std::{borrow::Cow, collections::HashMap, fs::exists, io::Read, path::PathBuf};
 
 mod cli;
 
@@ -34,7 +34,7 @@ fn deserialize_regex<'de, D>(deserializer: D) -> Result<Option<Regex>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let buf = String::deserialize(deserializer)?;
+    let buf = Cow::<'de, str>::deserialize(deserializer)?;
 
     Regex::new(&buf).map_err(serde::de::Error::custom).map(Some)
 }
@@ -65,9 +65,8 @@ fn deserialize_hex<'de, D>(deserializer: D) -> Result<[u8; 3], D::Error>
 where
     D: Deserializer<'de>,
 {
-    let mut buf = &String::deserialize(deserializer)?[..];
-
-    buf = buf.trim_start_matches('#');
+    let buf = Cow::<'de, str>::deserialize(deserializer)?;
+    let buf = buf.trim_start_matches('#');
 
     if buf.len() != 6 {
         return Err(serde::de::Error::custom(toml::de::Error::custom(
