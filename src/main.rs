@@ -82,7 +82,7 @@ fn query_dir(app: &App, dir: Dir) -> Vec<String> {
                 .config
                 .ignore
                 .as_ref()
-                .is_some_and(|r| r.is_match(&filename))
+                .is_some_and(|re| re.is_match(&filename))
         {
             continue;
         }
