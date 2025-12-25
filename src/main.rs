@@ -69,12 +69,14 @@ fn query_dir(app: &App, dir: Dir) -> Vec<String> {
 
         let path = &entry.path();
 
-        let filename = {
+        let filename = if entry.path().is_file() {
             let Some(stem) = path.file_stem() else {
                 panic!("Failed to parse filename from path: {}", path.display());
             };
 
             stem.to_string_lossy()
+        } else {
+            path.file_name().unwrap().to_string_lossy()
         };
 
         if !app.no_ignore
