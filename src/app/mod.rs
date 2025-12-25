@@ -160,9 +160,19 @@ impl App {
         };
 
         // Filter non-existent directories.
-        config
-            .dirs
-            .retain(|_id, dir| exists(root.join(dir.path.clone())).is_ok_and(|b| b));
+        config.dirs.retain(|id, dir| {
+            let dir_path = root.join(dir.path.clone());
+
+            if exists(&dir_path).is_ok_and(|ex: bool| ex) {
+                true
+            } else {
+                warn_msg(&format!(
+                    "Path for `dirs.{id}` does not exist: {}",
+                    dir_path.display()
+                ));
+                false
+            }
+        });
 
         // Build colored prefixes.
         for dir in config.dirs.values_mut() {
@@ -205,10 +215,7 @@ fn find_toml_path(root: &Path) -> eyre::Result<PathBuf> {
         return Ok(root.join("bsrc.toml"));
     }
 
-    eprintln!(
-        "{}: Searching for bsrc.toml in parent directories...",
-        "WARN".yellow()
-    );
+    warn_msg("Searching for bsrc.toml in parent directories...");
 
     for _ in 0..4 {
         let maybe_toml = root.join("bsrc.toml");
@@ -227,4 +234,8 @@ fn find_toml_path(root: &Path) -> eyre::Result<PathBuf> {
     Err(eyre::eyre!(
         "Failed to locate `bsrc.toml` in current or parent directories."
     ))
+}
+
+fn warn_msg(msg: &str) {
+    eprintln!("{}: {msg}", "WARN".yellow());
 }
