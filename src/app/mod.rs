@@ -38,6 +38,7 @@ pub struct Config {
     pub ignore: Option<Regex>,
 }
 
+/// Deserializes regex strings into `regex::Regex` instances.
 fn deserialize_regex<'de, D>(deserializer: D) -> Result<Option<Regex>, D::Error>
 where
     D: Deserializer<'de>,
@@ -69,6 +70,7 @@ pub struct Dir {
     pub color_prefix: ColoredString,
 }
 
+/// Deserializes hex color strings into rgb values.
 fn deserialize_hex<'de, D>(deserializer: D) -> Result<[u8; 3], D::Error>
 where
     D: Deserializer<'de>,
@@ -143,6 +145,7 @@ impl App {
             )
         };
 
+        // Full path to the toml config file.
         let toml_path: PathBuf = find_toml_path(&root)?;
 
         let mut f = std::fs::File::open(&toml_path)
@@ -220,7 +223,7 @@ fn find_toml_path(root: &Path) -> eyre::Result<PathBuf> {
     for _ in 0..4 {
         let maybe_toml = root.join("bsrc.toml");
 
-        if exists(&maybe_toml).is_ok_and(|b| b) {
+        if exists(&maybe_toml).is_ok_and(|exists| exists) {
             return Ok(maybe_toml);
         }
 

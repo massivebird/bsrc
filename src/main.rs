@@ -8,6 +8,11 @@ mod app;
 async fn main() -> eyre::Result<()> {
     let app = app::App::build()?;
 
+    // Holds async task handles, one for each directory.
+    // Iterate through `dirs` twice, in the same direction:
+    // (1) Spawn an async task for each dir. Push each handle to the back.
+    // (2) Pop the front handle when its task is completed.
+    // This way, we know exactly which dir corresponds to which handle.
     let mut handles = VecDeque::new();
 
     for (_id, dir) in app.config.dirs.clone() {
@@ -17,6 +22,7 @@ async fn main() -> eyre::Result<()> {
 
     let mut num_matches: u32 = 0;
 
+    // Locates placeholders in user-provided output format string.
     let fmt_re = Regex::new(r"%[pf]").unwrap();
 
     for dir in app.config.dirs.values() {
