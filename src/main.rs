@@ -1,6 +1,5 @@
-use regex::Regex;
-
 use self::app::{App, Dir};
+use regex::Regex;
 use std::{collections::VecDeque, path::Path};
 
 mod app;
