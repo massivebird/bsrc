@@ -26,7 +26,9 @@ async fn main() -> eyre::Result<()> {
     let fmt_re = Regex::new(r"%[pf]").unwrap();
 
     for dir in app.config.dirs {
-        let matches = handles.pop_front().unwrap().await.unwrap();
+        let mut matches = handles.pop_front().unwrap().await.unwrap();
+
+        matches.sort();
 
         total_matches += u32::try_from(matches.len()).unwrap();
 
