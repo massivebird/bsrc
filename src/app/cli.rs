@@ -82,9 +82,16 @@ pub fn build() -> clap::Command {
                 .help("Do not apply config's `clean` pattern."),
         ])
         .next_help_heading("Output settings")
-        .args([Arg::new("no_count")
-            .long("no-count")
-            // .conflicts_with("count")
-            .action(clap::ArgAction::SetTrue)
-            .help("Suppress match count message.")])
+        .args([
+            Arg::new("count")
+                .short('c')
+                .long("count")
+                .action(clap::ArgAction::SetTrue)
+                .help("Show number of matching files per directory."),
+            Arg::new("no_count")
+                .long("no-count")
+                .conflicts_with("count")
+                .action(clap::ArgAction::SetTrue)
+                .help("Suppress match count message."),
+        ])
 }

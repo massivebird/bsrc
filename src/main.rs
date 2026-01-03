@@ -20,7 +20,7 @@ async fn main() -> eyre::Result<()> {
         handles.push_back(tokio::spawn(async move { query_dir(&app, dir) }));
     }
 
-    let mut num_matches: u32 = 0;
+    let mut total_matches: u32 = 0;
 
     // Locates placeholders in user-provided output format string.
     let fmt_re = Regex::new(r"%[pf]").unwrap();
@@ -28,7 +28,12 @@ async fn main() -> eyre::Result<()> {
     for dir in app.config.dirs.values() {
         let matches = handles.pop_front().unwrap().await.unwrap();
 
-        num_matches += u32::try_from(matches.len()).unwrap();
+        total_matches += u32::try_from(matches.len()).unwrap();
+
+        if app.only_counts {
+            println!("{}:{}", dir.color_prefix, matches.len());
+            continue;
+        }
 
         for m in matches {
             // Replace all placeholders in the output format string with their
@@ -46,13 +51,13 @@ async fn main() -> eyre::Result<()> {
         }
     }
 
-    if app.no_count_output {
+    if app.no_count_output || app.only_counts {
         return Ok(());
     }
 
     println!(
-        "{num_matches} {noun} found.",
-        noun = match num_matches {
+        "{total_matches} {noun} found.",
+        noun = match total_matches {
             1 => "match",
             _ => "matches",
         }
