@@ -4,7 +4,6 @@ use regex::Regex;
 use serde::{Deserialize, Deserializer, de::Error};
 use std::{
     borrow::Cow,
-    collections::HashMap,
     fs::exists,
     io::Read,
     path::{Path, PathBuf},
@@ -24,8 +23,14 @@ pub struct App {
 }
 
 #[derive(Deserialize, Clone, Debug)]
+struct DirMap {
+    dirs: std::collections::HashMap<String, Dir>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
 pub struct Config {
-    pub dirs: HashMap<String, Dir>,
+    #[serde(skip)]
+    pub dirs: Vec<Dir>,
 
     #[serde(default = "default_fmt")]
     pub output_fmt: String,
@@ -69,6 +74,8 @@ pub struct Dir {
 
     #[serde(skip)]
     pub color_prefix: ColoredString,
+    #[serde(skip)]
+    pub id: String,
 }
 
 /// Deserializes hex color strings into rgb values.
@@ -156,6 +163,8 @@ impl App {
         f.read_to_string(&mut buf)
             .wrap_err("Failed to read contents of TOML config file.")?;
 
+        let dirs_map: DirMap = toml::from_str(&buf).unwrap();
+
         let mut config: Config = match toml::from_str(&buf) {
             Ok(c) => c,
             Err(e) => {
@@ -163,15 +172,30 @@ impl App {
             }
         };
 
+        // Insert directories in sorted order
+        config.dirs = {
+            let mut dirs: Vec<Dir> = Vec::new();
+
+            for (id, mut d) in dirs_map.dirs {
+                d.id = id;
+                dirs.push(d);
+            }
+
+            dirs.sort_by_key(|d| d.id.clone());
+
+            dirs
+        };
+
         // Filter non-existent directories.
-        config.dirs.retain(|id, dir| {
+        config.dirs.retain(|dir| {
             let dir_path = root.join(dir.path.clone());
 
             if exists(&dir_path).is_ok_and(|ex: bool| ex) {
                 true
             } else {
                 warn_msg(&format!(
-                    "Path for `dirs.{id}` does not exist: {}",
+                    "Path for `dirs.{}` does not exist: {}",
+                    dir.id,
                     dir_path.display()
                 ));
                 false
@@ -179,7 +203,7 @@ impl App {
         });
 
         // Build colored prefixes.
-        for dir in config.dirs.values_mut() {
+        for dir in &mut config.dirs {
             dir.color_prefix = dir
                 .raw_prefix
                 .truecolor(dir.color[0], dir.color[1], dir.color[2]);
@@ -187,17 +211,9 @@ impl App {
 
         // Optionally filter directories.
         if let Some(ids) = get_arg("only") {
-            config.dirs = config
-                .dirs
-                .into_iter()
-                .filter(|d| ids.contains(&d.0))
-                .collect();
+            config.dirs.retain(|d| ids.contains(&d.id));
         } else if let Some(ids) = get_arg("exclude") {
-            config.dirs = config
-                .dirs
-                .into_iter()
-                .filter(|d| !ids.contains(&d.0))
-                .collect();
+            config.dirs.retain(|d| !ids.contains(&d.id));
         }
 
         Ok(Self {

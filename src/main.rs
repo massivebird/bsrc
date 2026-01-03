@@ -15,7 +15,7 @@ async fn main() -> eyre::Result<()> {
     // This way, we know exactly which dir corresponds to which handle.
     let mut handles = VecDeque::new();
 
-    for (_id, dir) in app.config.dirs.clone() {
+    for dir in app.config.dirs.clone() {
         let app = app.clone();
         handles.push_back(tokio::spawn(async move { query_dir(&app, dir) }));
     }
@@ -25,7 +25,7 @@ async fn main() -> eyre::Result<()> {
     // Locates placeholders in user-provided output format string.
     let fmt_re = Regex::new(r"%[pf]").unwrap();
 
-    for dir in app.config.dirs.values() {
+    for dir in app.config.dirs {
         let matches = handles.pop_front().unwrap().await.unwrap();
 
         total_matches += u32::try_from(matches.len()).unwrap();
