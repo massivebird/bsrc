@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 + Added `-c/--count` option, which prints the number of matching files per directory.
 
+### Fixed
+
++ Output is now deterministic; directories are sorted by ID.
+
 ## [0.2.2] - 2025-12-25
 
 ### Fixed
