@@ -1,15 +1,11 @@
 use colored::{ColoredString, Colorize};
 use eyre::{Context, OptionExt};
 use regex::Regex;
-use serde::{Deserialize, Deserializer, de::Error};
-use std::{
-    borrow::Cow,
-    fs::exists,
-    io::Read,
-    path::{Path, PathBuf},
-};
+use serde::Deserialize;
+use std::{fs::exists, path::PathBuf};
 
 mod cli;
+mod parser;
 
 #[derive(Debug, Clone)]
 pub struct App {
@@ -23,39 +19,22 @@ pub struct App {
 }
 
 #[derive(Deserialize, Clone, Debug)]
-struct DirMap {
-    dirs: std::collections::HashMap<String, Dir>,
-}
-
-#[derive(Deserialize, Clone, Debug)]
 pub struct Config {
     #[serde(skip)]
+    // Directories are deserialized into hashmap entries, with the ID as the key.
+    // I sort and collect them into a vec to create deterministic output.
     pub dirs: Vec<Dir>,
 
-    #[serde(default = "default_fmt")]
+    #[serde(default = "parser::default_output_fmt")]
     pub output_fmt: String,
 
-    #[serde(deserialize_with = "deserialize_regex")]
+    #[serde(deserialize_with = "parser::deserialize_regex")]
     #[serde(default)]
     pub clean: Option<Regex>,
 
-    #[serde(deserialize_with = "deserialize_regex")]
+    #[serde(deserialize_with = "parser::deserialize_regex")]
     #[serde(default)]
     pub ignore: Option<Regex>,
-}
-
-/// Deserializes regex strings into `regex::Regex` instances.
-fn deserialize_regex<'de, D>(deserializer: D) -> Result<Option<Regex>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let buf = Cow::<'de, str>::deserialize(deserializer)?;
-
-    Regex::new(&buf).map_err(serde::de::Error::custom).map(Some)
-}
-
-fn default_fmt() -> String {
-    "%p: %f".to_owned()
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -68,39 +47,14 @@ pub struct Dir {
     #[serde(default)]
     pub match_dirs: bool,
 
-    #[serde(default = "default_color")]
-    #[serde(deserialize_with = "deserialize_hex")]
+    #[serde(default = "parser::default_color")]
+    #[serde(deserialize_with = "parser::deserialize_hex")]
     pub color: [u8; 3],
 
     #[serde(skip)]
     pub color_prefix: ColoredString,
     #[serde(skip)]
     pub id: String,
-}
-
-/// Deserializes hex color strings into rgb values.
-fn deserialize_hex<'de, D>(deserializer: D) -> Result<[u8; 3], D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let buf = Cow::<'de, str>::deserialize(deserializer)?;
-    let buf = buf.trim_start_matches('#');
-
-    if buf.len() != 6 {
-        return Err(serde::de::Error::custom(toml::de::Error::custom(
-            "Unexpected hex color format. Example: \"#33AABB\"",
-        )));
-    }
-
-    Ok([
-        u8::from_str_radix(&buf[0..=1], 16).map_err(serde::de::Error::custom)?,
-        u8::from_str_radix(&buf[2..=3], 16).map_err(serde::de::Error::custom)?,
-        u8::from_str_radix(&buf[4..=5], 16).map_err(serde::de::Error::custom)?,
-    ])
-}
-
-const fn default_color() -> [u8; 3] {
-    [255, 255, 255]
 }
 
 impl App {
@@ -153,38 +107,7 @@ impl App {
             )
         };
 
-        // Full path to the toml config file.
-        let toml_path: PathBuf = find_toml_path(&root)?;
-
-        let mut f = std::fs::File::open(&toml_path)
-            .wrap_err_with(|| format!("Failed to read config from {}", toml_path.display()))?;
-
-        let mut buf = String::new();
-        f.read_to_string(&mut buf)
-            .wrap_err("Failed to read contents of TOML config file.")?;
-
-        let dirs_map: DirMap = toml::from_str(&buf).unwrap();
-
-        let mut config: Config = match toml::from_str(&buf) {
-            Ok(c) => c,
-            Err(e) => {
-                panic!("{e}");
-            }
-        };
-
-        // Insert directories in sorted order
-        config.dirs = {
-            let mut dirs: Vec<Dir> = Vec::new();
-
-            for (id, mut d) in dirs_map.dirs {
-                d.id = id;
-                dirs.push(d);
-            }
-
-            dirs.sort_by_key(|d| d.id.clone());
-
-            dirs
-        };
+        let mut config = parser::from_toml_path(&root)?;
 
         // Filter non-existent directories.
         config.dirs.retain(|dir| {
@@ -228,35 +151,6 @@ impl App {
     }
 }
 
-/// Searches for `bsrc.toml` in root and (some) parent directories.
-fn find_toml_path(root: &Path) -> eyre::Result<PathBuf> {
-    let mut root = root;
-
-    if exists(root.join("bsrc.toml")).is_ok_and(|b| b) {
-        return Ok(root.join("bsrc.toml"));
-    }
-
-    warn_msg("Searching for bsrc.toml in parent directories...");
-
-    for _ in 0..4 {
-        let maybe_toml = root.join("bsrc.toml");
-
-        if exists(&maybe_toml).is_ok_and(|exists| exists) {
-            return Ok(maybe_toml);
-        }
-
-        if let Some(upwards) = root.parent() {
-            root = upwards;
-        } else {
-            break;
-        }
-    }
-
-    Err(eyre::eyre!(
-        "Failed to locate `bsrc.toml` in current or parent directories."
-    ))
-}
-
-fn warn_msg(msg: &str) {
+pub fn warn_msg(msg: &str) {
     eprintln!("{}: {msg}", "WARN".yellow());
 }
