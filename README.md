@@ -5,9 +5,9 @@ A customizable file search utility!
 
 🦀 written in Rust
 
-<!-- <p align="center"> -->
-<!--   <img width="75%" src="https://imgur.com/b8hfzFN.gif" /> -->
-<!-- </p> -->
+<p align="center">
+  <img width="65%" src="./res/bsrc.gif" />
+</p>
 
 ## Elevator pitch
 
