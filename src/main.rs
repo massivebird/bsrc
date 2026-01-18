@@ -1,12 +1,10 @@
-use self::app::{App, Dir};
+use bsrc::{App, Query};
 use regex::Regex;
-use std::{collections::VecDeque, path::Path};
-
-mod app;
+use std::collections::VecDeque;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
-    let app = app::App::build()?;
+    let app = App::build()?;
 
     // Holds async task handles, one for each directory.
     // Iterate through `dirs` twice, in the same direction:
@@ -15,9 +13,11 @@ async fn main() -> eyre::Result<()> {
     // This way, we know exactly which dir corresponds to which handle.
     let mut handles = VecDeque::new();
 
+    let query = Query::from(app.clone());
+
     for dir in app.config.dirs.clone() {
-        let app = app.clone();
-        handles.push_back(tokio::spawn(async move { query_dir(&app, dir) }));
+        let query = query.clone();
+        handles.push_back(tokio::spawn(async move { query.run(&dir) }));
     }
 
     let mut total_matches: u32 = 0;
@@ -66,56 +66,4 @@ async fn main() -> eyre::Result<()> {
     );
 
     Ok(())
-}
-
-fn query_dir(app: &App, dir: Dir) -> Vec<String> {
-    let mut matches: Vec<String> = Vec::new();
-
-    for entry in Path::new(&app.root.join(dir.path))
-        .read_dir()
-        .unwrap()
-        .filter_map(Result::ok)
-    {
-        if dir.match_dirs && entry.path().is_file() || !dir.match_dirs && entry.path().is_dir() {
-            continue;
-        }
-
-        let path = &entry.path();
-
-        let filename = if entry.path().is_file() {
-            let Some(stem) = path.file_stem() else {
-                panic!("Failed to parse filename from path: {}", path.display());
-            };
-
-            stem.to_string_lossy()
-        } else {
-            path.file_name().unwrap().to_string_lossy()
-        };
-
-        if !app.no_ignore
-            && app
-                .config
-                .ignore
-                .as_ref()
-                .is_some_and(|re| re.is_match(&filename))
-        {
-            continue;
-        }
-
-        // Apply cleaning based on user-specified pattern.
-        // e.g. "Pokemon Snap (USA).n64" -> "Pokemon Snap"
-        let filename = if let Some(re) = &app.config.clean
-            && !app.no_clean
-        {
-            re.replace_all(&filename, "")
-        } else {
-            filename
-        };
-
-        if app.query.is_match(&filename) {
-            matches.push(filename.trim().to_string());
-        }
-    }
-
-    matches
 }

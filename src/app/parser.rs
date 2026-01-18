@@ -1,3 +1,5 @@
+use crate::app::{Config, Dir, warn_msg};
+use colored::Colorize;
 use eyre::Context;
 use regex::Regex;
 use serde::{Deserialize, Deserializer, de::Error};
@@ -7,8 +9,6 @@ use std::{
     io::Read,
     path::{Path, PathBuf},
 };
-
-use crate::app::{Config, Dir, warn_msg};
 
 #[derive(Deserialize, Clone, Debug)]
 struct DirMap {
@@ -49,6 +49,16 @@ pub fn from_toml_path(root: &Path) -> Result<Config, eyre::Report> {
         dirs
     };
 
+    for dir in &mut config.dirs {
+        // Build colored prefixes.
+        dir.color_prefix = dir
+            .raw_prefix
+            .truecolor(dir.color[0], dir.color[1], dir.color[2]);
+
+        // Make all paths absolute.
+        dir.path = root.join(&dir.path);
+    }
+
     Ok(config)
 }
 
@@ -81,16 +91,6 @@ pub fn find_toml_path(root: &Path) -> eyre::Result<PathBuf> {
     ))
 }
 
-/// Deserializes regex strings into `regex::Regex` instances.
-pub(super) fn deserialize_regex<'de, D>(deserializer: D) -> Result<Option<Regex>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let buf = Cow::<'de, str>::deserialize(deserializer)?;
-
-    Regex::new(&buf).map_err(serde::de::Error::custom).map(Some)
-}
-
 /// Deserializes hex color strings into rgb values.
 pub(super) fn deserialize_hex<'de, D>(deserializer: D) -> Result<[u8; 3], D::Error>
 where
@@ -110,6 +110,16 @@ where
         u8::from_str_radix(&buf[2..=3], 16).map_err(serde::de::Error::custom)?,
         u8::from_str_radix(&buf[4..=5], 16).map_err(serde::de::Error::custom)?,
     ])
+}
+
+/// Deserializes regex strings into `regex::Regex` instances.
+pub(super) fn deserialize_regex<'de, D>(deserializer: D) -> Result<Option<Regex>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let buf = Cow::<'de, str>::deserialize(deserializer)?;
+
+    Regex::new(&buf).map_err(serde::de::Error::custom).map(Some)
 }
 
 pub(super) const fn default_color() -> [u8; 3] {

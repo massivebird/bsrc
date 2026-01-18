@@ -1,60 +1,25 @@
-use colored::{ColoredString, Colorize};
+use colored::Colorize;
 use eyre::{Context, OptionExt};
 use regex::Regex;
-use serde::Deserialize;
 use std::{fs::exists, path::PathBuf};
 
+use self::dir::Dir;
+
 mod cli;
-mod parser;
+pub mod config;
+pub mod dir;
+pub mod parser;
+
+pub use config::Config;
 
 #[derive(Debug, Clone)]
 pub struct App {
-    pub root: PathBuf,
     pub query: Regex,
     pub config: Config,
     pub only_counts: bool,
     pub no_count_output: bool,
     pub no_clean: bool,
     pub no_ignore: bool,
-}
-
-#[derive(Deserialize, Clone, Debug)]
-pub struct Config {
-    #[serde(skip)]
-    // Directories are deserialized into hashmap entries, with the ID as the key.
-    // I sort and collect them into a vec to create deterministic output.
-    pub dirs: Vec<Dir>,
-
-    #[serde(default = "parser::default_output_fmt")]
-    pub output_fmt: String,
-
-    #[serde(deserialize_with = "parser::deserialize_regex")]
-    #[serde(default)]
-    pub clean: Option<Regex>,
-
-    #[serde(deserialize_with = "parser::deserialize_regex")]
-    #[serde(default)]
-    pub ignore: Option<Regex>,
-}
-
-#[derive(Deserialize, Clone, Debug)]
-pub struct Dir {
-    pub path: String,
-
-    #[serde(rename = "prefix")]
-    pub raw_prefix: String,
-
-    #[serde(default)]
-    pub match_dirs: bool,
-
-    #[serde(default = "parser::default_color")]
-    #[serde(deserialize_with = "parser::deserialize_hex")]
-    pub color: [u8; 3],
-
-    #[serde(skip)]
-    pub color_prefix: ColoredString,
-    #[serde(skip)]
-    pub id: String,
 }
 
 impl App {
@@ -125,13 +90,6 @@ impl App {
             }
         });
 
-        // Build colored prefixes.
-        for dir in &mut config.dirs {
-            dir.color_prefix = dir
-                .raw_prefix
-                .truecolor(dir.color[0], dir.color[1], dir.color[2]);
-        }
-
         // Optionally filter directories.
         if let Some(ids) = get_arg("only") {
             config.dirs.retain(|d| ids.contains(&d.id));
@@ -140,7 +98,6 @@ impl App {
         }
 
         Ok(Self {
-            root,
             query,
             config,
             only_counts: matches.get_flag("count"),
