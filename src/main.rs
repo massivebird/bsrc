@@ -13,11 +13,12 @@ async fn main() -> eyre::Result<()> {
     // This way, we know exactly which dir corresponds to which handle.
     let mut handles = VecDeque::new();
 
-    let query = Query::from(app.clone());
+    let query = Query::from(&app);
 
     for dir in app.config.dirs.clone() {
         let query = query.clone();
-        handles.push_back(tokio::spawn(async move { query.run(&dir) }));
+        let remote = app.remote_client.clone();
+        handles.push_back(tokio::spawn(async move { query.run(&dir, remote) }));
     }
 
     let mut total_matches: u32 = 0;

@@ -1,6 +1,8 @@
 use colored::Colorize;
 use eyre::{Context, OptionExt};
 use regex::Regex;
+use remotefs_ssh::SftpFs;
+use std::sync::{Arc, Mutex};
 use std::{fs::exists, path::PathBuf};
 
 use self::dir::Dir;
@@ -12,7 +14,7 @@ pub mod parser;
 
 pub use config::Config;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct App {
     pub query: Regex,
     pub config: Config,
@@ -20,6 +22,7 @@ pub struct App {
     pub no_count_output: bool,
     pub no_clean: bool,
     pub no_ignore: bool,
+    pub remote_client: Option<Arc<Mutex<SftpFs>>>,
 }
 
 impl App {
@@ -72,13 +75,31 @@ impl App {
             )
         };
 
-        let mut config = parser::from_toml_path(&root)?;
+        let remote = get_arg("user").map(|user| {
+            use remotefs::RemoteFs;
+            use remotefs_ssh::{SftpFs, SshConfigParseRule, SshOpts};
+
+            let mut client: SftpFs = SshOpts::new(get_arg("addr").unwrap())
+                .port(22)
+                .username(user)
+                .password(get_arg("pass").unwrap())
+                .config_file(
+                    std::path::Path::new("/home/penguino/.ssh/config"),
+                    SshConfigParseRule::STRICT,
+                )
+                .into();
+
+            client.connect().unwrap();
+            Arc::new(Mutex::new(client))
+        });
+
+        let mut config = parser::from_toml_path(&root, remote.clone())?;
 
         // Filter non-existent directories.
         config.dirs.retain(|dir| {
             let dir_path = root.join(dir.path.clone());
 
-            if exists(&dir_path).is_ok_and(|ex: bool| ex) {
+            if remote.is_some() || exists(&dir_path).is_ok_and(|ex: bool| ex) {
                 true
             } else {
                 warn_msg(&format!(
@@ -104,6 +125,7 @@ impl App {
             no_count_output: matches.get_flag("no_count"),
             no_clean: matches.get_flag("no_clean"),
             no_ignore: matches.get_flag("no_ignore"),
+            remote_client: remote,
         })
     }
 }

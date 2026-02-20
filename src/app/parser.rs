@@ -2,12 +2,15 @@ use crate::app::{Config, Dir, warn_msg};
 use colored::Colorize;
 use eyre::Context;
 use regex::Regex;
+use remotefs::RemoteFs;
+use remotefs_ssh::SftpFs;
 use serde::{Deserialize, Deserializer, de::Error};
 use std::{
     borrow::Cow,
     fs::exists,
     io::Read,
     path::{Path, PathBuf},
+    sync::{Arc, Mutex},
 };
 
 #[derive(Deserialize, Clone, Debug)]
@@ -15,16 +18,32 @@ struct DirMap {
     dirs: std::collections::HashMap<String, Dir>,
 }
 
-pub fn from_toml_path(root: &Path) -> Result<Config, eyre::Report> {
-    // Full path to the toml config file.
-    let toml_path: PathBuf = find_toml_path(root)?;
-
-    let mut f = std::fs::File::open(&toml_path)
-        .wrap_err_with(|| format!("Failed to read config from {}", toml_path.display()))?;
-
+pub fn from_toml_path(
+    root: &Path,
+    client: Option<Arc<Mutex<SftpFs>>>,
+) -> Result<Config, eyre::Report> {
     let mut buf = String::new();
-    f.read_to_string(&mut buf)
-        .wrap_err("Failed to read contents of TOML config file.")?;
+
+    if let Some(client) = client {
+        let mut toml = client
+            .lock()
+            .unwrap()
+            .open(&root.join("bsrc.toml"))
+            .expect("Failed to locate bsrc.toml at the specified path.");
+
+        toml.read_to_string(&mut buf)
+            .wrap_err("Failed to read contents of TOML config file.")?;
+    } else {
+        // Full path to the toml config file.
+        let toml_path: PathBuf = find_toml_path(root)?;
+
+        let mut f = std::fs::File::open(&toml_path)
+            .wrap_err_with(|| format!("Failed to read config from {}", toml_path.display()))?;
+
+        let mut buf = String::new();
+        f.read_to_string(&mut buf)
+            .wrap_err("Failed to read contents of TOML config file.")?;
+    }
 
     let dirs_map: DirMap = toml::from_str(&buf).unwrap();
 

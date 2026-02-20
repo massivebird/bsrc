@@ -94,4 +94,10 @@ pub fn build() -> clap::Command {
                 .action(clap::ArgAction::SetTrue)
                 .help("Suppress match count message."),
         ])
+        .next_help_heading("Remote settings")
+        .args([
+            Arg::new("user").short('u').long("user").requires("pass"),
+            Arg::new("pass").short('p').long("pass").requires("addr"),
+            Arg::new("addr").long("addr").requires("user"),
+        ])
 }
