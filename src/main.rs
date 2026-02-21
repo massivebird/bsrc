@@ -29,7 +29,7 @@ async fn main() -> eyre::Result<()> {
     for dir in app.config.dirs {
         let mut matches = handles.pop_front().unwrap().await.unwrap();
 
-        matches.sort();
+        matches.sort_unstable_by_key(|s| s.to_lowercase());
 
         total_matches += u32::try_from(matches.len()).unwrap();
 
