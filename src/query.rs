@@ -37,10 +37,17 @@ impl Query {
         }
     }
 
+    /// Set the query.
+    pub fn query(&mut self, query: Regex) {
+        self.query = query;
+    }
+
+    /// Set the regex used to clean filenames.
     pub fn clean(&mut self, regex: Regex) {
         self.clean = Some(regex);
     }
 
+    /// Set the regex used to ignore filenames.
     pub fn ignore(&mut self, regex: Regex) {
         self.ignore = Some(regex);
     }
