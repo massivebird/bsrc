@@ -38,18 +38,54 @@ impl Query {
     }
 
     /// Set the query.
-    pub fn query(&mut self, query: Regex) {
-        self.query = query;
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the `try_into()` fails when converting to a Regex
+    /// instance.
+    pub fn query<T>(
+        &mut self,
+        pat: T,
+    ) -> Result<(), <T as std::convert::TryInto<regex::Regex>>::Error>
+    where
+        T: TryInto<Regex>,
+    {
+        self.query = pat.try_into()?;
+        Ok(())
     }
 
     /// Set the regex used to clean filenames.
-    pub fn clean(&mut self, regex: Regex) {
-        self.clean = Some(regex);
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the `try_into()` fails when converting to a Regex
+    /// instance.
+    pub fn clean<T>(
+        &mut self,
+        pat: T,
+    ) -> Result<(), <T as std::convert::TryInto<regex::Regex>>::Error>
+    where
+        T: TryInto<Regex>,
+    {
+        self.clean = Some(pat.try_into()?);
+        Ok(())
     }
 
     /// Set the regex used to ignore filenames.
-    pub fn ignore(&mut self, regex: Regex) {
-        self.ignore = Some(regex);
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the `try_into()` fails when converting to a Regex
+    /// instance.
+    pub fn ignore<T>(
+        &mut self,
+        pat: T,
+    ) -> Result<(), <T as std::convert::TryInto<regex::Regex>>::Error>
+    where
+        T: TryInto<Regex>,
+    {
+        self.ignore = Some(pat.try_into()?);
+        Ok(())
     }
 
     #[must_use]
