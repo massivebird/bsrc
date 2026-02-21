@@ -51,6 +51,20 @@ impl Query {
         )
     }
 
+    fn run_local(&self, dir: &Dir) -> Vec<String> {
+        let mut matches: Vec<String> = Vec::new();
+
+        for entry in dir.path.read_dir().unwrap().filter_map(Result::ok) {
+            if let Some(filename) =
+                Self::matching_filename(self, dir, &entry.path(), entry.path().is_file())
+            {
+                matches.push(filename);
+            }
+        }
+
+        matches
+    }
+
     fn run_remote(&self, dir: &Dir, client: &Arc<Mutex<SftpFs>>) -> Vec<String> {
         use remotefs::RemoteFs;
 
@@ -59,95 +73,63 @@ impl Query {
         let files: Vec<remotefs::File> = client.lock().unwrap().list_dir(&dir.path).unwrap();
 
         for file in files {
-            let is_file = file.metadata().is_file();
-            let is_dir = file.metadata().is_dir();
-
-            if dir.match_dirs && is_file || !dir.match_dirs && is_dir {
-                continue;
-            }
-
-            let filename = if is_file {
-                let Some(stem) = Path::new(file.path()).file_stem() else {
-                    panic!(
-                        "Failed to parse filename from path: {}",
-                        file.path().display()
-                    );
-                };
-
-                stem.to_string_lossy()
-            } else {
-                file.path().file_name().unwrap().to_string_lossy()
-            };
-
-            // Apply ignore pattern if it exists.
-            if self
-                .ignore
-                .as_ref()
-                .is_some_and(|re| re.is_match(&filename))
-            {
-                continue;
-            }
-
-            // Apply cleaning based on user-specified pattern. If it exists.
-            // e.g. "Pokemon Snap (USA).n64" -> "Pokemon Snap"
-            let filename = if let Some(re) = &self.clean {
-                re.replace_all(&filename, "")
-            } else {
-                filename
-            };
-
-            if self.query.is_match(&filename) {
-                matches.push(filename.trim().to_string());
+            if let Some(filename) = Self::matching_filename(
+                self,
+                dir,
+                Path::new(file.path()),
+                file.metadata().is_file(),
+            ) {
+                matches.push(filename);
             }
         }
 
         matches
     }
 
-    fn run_local(&self, dir: &Dir) -> Vec<String> {
-        let mut matches: Vec<String> = Vec::new();
+    /// Returns the (mutated) filename, if the file matches this query.
+    ///
+    /// `is_file` logic is delegated to the caller because remotely-fetched files
+    /// must use their metadata to determine the file type.
+    fn matching_filename(&self, dir: &Dir, path: &Path, is_file: bool) -> Option<String> {
+        // Surely this won't cause issues later
+        let is_dir = !is_file;
 
-        for entry in dir.path.read_dir().unwrap().filter_map(Result::ok) {
-            if dir.match_dirs && entry.path().is_file() || !dir.match_dirs && entry.path().is_dir()
-            {
-                continue;
-            }
-
-            let path = &entry.path();
-
-            let filename = if entry.path().is_file() {
-                let Some(stem) = path.file_stem() else {
-                    panic!("Failed to parse filename from path: {}", path.display());
-                };
-
-                stem.to_string_lossy()
-            } else {
-                path.file_name().unwrap().to_string_lossy()
-            };
-
-            // Apply ignore pattern if it exists.
-            if self
-                .ignore
-                .as_ref()
-                .is_some_and(|re| re.is_match(&filename))
-            {
-                continue;
-            }
-
-            // Apply cleaning based on user-specified pattern. If it exists.
-            // e.g. "Pokemon Snap (USA).n64" -> "Pokemon Snap"
-            let filename = if let Some(re) = &self.clean {
-                re.replace_all(&filename, "")
-            } else {
-                filename
-            };
-
-            if self.query.is_match(&filename) {
-                matches.push(filename.trim().to_string());
-            }
+        if dir.match_dirs && is_file || !dir.match_dirs && is_dir {
+            return None;
         }
 
-        matches
+        let filename = if is_file {
+            let Some(stem) = path.file_stem() else {
+                panic!("Failed to parse filename from path: {}", path.display());
+            };
+
+            stem.to_string_lossy()
+        } else {
+            path.file_name().unwrap().to_string_lossy()
+        };
+
+        // Apply ignore pattern if it exists.
+        if self
+            .ignore
+            .as_ref()
+            .is_some_and(|re| re.is_match(&filename))
+        {
+            return None;
+        }
+
+        // Apply cleaning based on user-specified pattern. If it exists.
+        // e.g. "Pokemon Snap (USA).n64" -> "Pokemon Snap"
+        let filename = if let Some(re) = &self.clean {
+            re.replace_all(&filename, "")
+        } else {
+            filename
+        };
+
+        if self.query.is_match(&filename) {
+            Some(filename.trim().to_string())
+        } else {
+            None
+        }
     }
 }
 

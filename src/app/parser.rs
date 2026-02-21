@@ -40,12 +40,11 @@ pub fn from_toml_path(
         let mut f = std::fs::File::open(&toml_path)
             .wrap_err_with(|| format!("Failed to read config from {}", toml_path.display()))?;
 
-        let mut buf = String::new();
         f.read_to_string(&mut buf)
             .wrap_err("Failed to read contents of TOML config file.")?;
     }
 
-    let dirs_map: DirMap = toml::from_str(&buf).unwrap();
+    let dirs_map: DirMap = toml::from_str(&buf)?;
 
     let mut config: Config = match toml::from_str(&buf) {
         Ok(c) => c,
