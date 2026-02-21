@@ -1,9 +1,12 @@
 use colored::Colorize;
-use eyre::{Context, OptionExt};
+use eyre::{Context, ContextCompat, OptionExt};
 use regex::Regex;
 use remotefs_ssh::SftpFs;
-use std::sync::{Arc, Mutex};
-use std::{fs::exists, path::PathBuf};
+use std::{
+    fs::exists,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 use self::dir::Dir;
 
@@ -26,6 +29,16 @@ pub struct App {
 }
 
 impl App {
+    /// # Errors
+    ///
+    /// Some error scenarios:
+    ///
+    /// + Client fails to establish a connection to the remote machine.
+    /// + Fails to parse bsrc.toml.
+    ///
+    /// # Panics
+    ///
+    /// Will panic if parsing the command line arguments fails.
     pub fn build() -> Result<Self, eyre::Report> {
         let matches = cli::build().get_matches();
 
@@ -33,7 +46,7 @@ impl App {
         if let Some(sub_matches) = matches.subcommand_matches("completions") {
             let shell = sub_matches
                 .get_one::<clap_complete_command::Shell>("shell")
-                .unwrap();
+                .wrap_err("No way, I failed to get the shell. #freak accident")?;
 
             let mut cli = cli::build();
 
@@ -75,7 +88,7 @@ impl App {
             )
         };
 
-        let remote = get_arg("user").map(|user| {
+        let remote = if let Some(user) = get_arg("user") {
             use remotefs::RemoteFs;
             use remotefs_ssh::{SftpFs, SshConfigParseRule, SshOpts};
 
@@ -89,9 +102,14 @@ impl App {
                 )
                 .into();
 
-            client.connect().unwrap();
-            Arc::new(Mutex::new(client))
-        });
+            client
+                .connect()
+                .wrap_err("Failed to connect to the remote machine")?;
+
+            Some(Arc::new(Mutex::new(client)))
+        } else {
+            None
+        };
 
         let mut config = parser::from_toml_path(&root, remote.clone())?;
 

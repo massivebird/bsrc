@@ -1,8 +1,10 @@
 use crate::{App, Dir};
 use regex::Regex;
 use remotefs_ssh::SftpFs;
-use std::path::Path;
-use std::sync::{Arc, Mutex};
+use std::{
+    path::Path,
+    sync::{Arc, Mutex},
+};
 
 #[derive(Debug, Clone)]
 pub struct Query {
