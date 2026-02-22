@@ -164,7 +164,7 @@ impl Query {
             filename
         };
 
-        if self.query.is_match(&unaccent::unaccent(&filename)) {
+        if self.query.is_match(unaccent::unaccent(&filename).trim()) {
             Some(filename.trim().to_string())
         } else {
             None
