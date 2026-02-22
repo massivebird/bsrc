@@ -10,7 +10,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use self::dir::Dir;
+use self::{dir::Dir, parser::Preset};
 
 mod cli;
 pub mod config;
@@ -102,44 +102,7 @@ impl App {
             get_arg("root").map_or(std::env::current_dir()?, PathBuf::from)
         };
 
-        let remote: Option<_> = if preset.is_some() || get_arg("remote").is_some() {
-            let remote = get_arg("remote");
-
-            let (user, host) = if let Some(ref preset) = preset {
-                (&preset.user[..], &preset.host[..])
-            } else if let Some(remote) = remote {
-                remote
-                    .split_once('@')
-                    .wrap_err("unexpected remote address format. Example: user@hostname")?
-            } else {
-                unreachable!();
-            };
-
-            let sesh: Session = {
-                let mut sesh = Session::new()?;
-                sesh.set_tcp_stream(TcpStream::connect(format!("{host}:22"))?);
-                sesh.handshake()?;
-
-                sesh
-            };
-
-            // Reject the host if it's unknown.
-            validate_host(&sesh, host)?;
-
-            let private_key: PathBuf = if let Some(path) = matches.get_one::<PathBuf>("identity") {
-                path.into()
-            } else {
-                Path::new(&std::env::var("HOME")?)
-                    .join(".ssh")
-                    .join("id_rsa")
-            };
-
-            sesh.userauth_pubkey_file(user, None, &private_key, None)?;
-
-            Some(Arc::new(Mutex::new(sesh.sftp()?)))
-        } else {
-            None
-        };
+        let remote: Option<_> = build_remote(preset.as_ref(), get_arg("remote"), &matches)?;
 
         let mut config: Config = parser::from_toml_path(&root, remote.clone())?;
 
@@ -207,4 +170,47 @@ fn validate_host(sesh: &Session, host: &str) -> Result<(), eyre::Report> {
 
 pub fn warn_msg(msg: &str) {
     eprintln!("{}: {msg}", "WARN".yellow());
+}
+
+fn build_remote(
+    preset: Option<&Preset>,
+    remote: Option<&String>,
+    matches: &clap::ArgMatches,
+) -> Result<Option<Arc<Mutex<ssh2::Sftp>>>, eyre::Report> {
+    if preset.is_none() && remote.is_none() {
+        return Ok(None);
+    }
+
+    let (user, host) = if let Some(preset) = preset {
+        (&preset.user[..], &preset.host[..])
+    } else if let Some(remote) = remote {
+        remote
+            .split_once('@')
+            .wrap_err("unexpected remote address format. Example: user@hostname")?
+    } else {
+        unreachable!();
+    };
+
+    let sesh: Session = {
+        let mut sesh = Session::new()?;
+        sesh.set_tcp_stream(TcpStream::connect(format!("{host}:22"))?);
+        sesh.handshake()?;
+
+        sesh
+    };
+
+    // Reject the host if it's unknown.
+    validate_host(&sesh, host)?;
+
+    let private_key: PathBuf = if let Some(path) = matches.get_one::<PathBuf>("identity") {
+        path.into()
+    } else {
+        Path::new(&std::env::var("HOME")?)
+            .join(".ssh")
+            .join("id_rsa")
+    };
+
+    sesh.userauth_pubkey_file(user, None, &private_key, None)?;
+
+    Ok(Some(Arc::new(Mutex::new(sesh.sftp()?))))
 }
