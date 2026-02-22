@@ -50,9 +50,9 @@ pub fn from_toml_path(
 
     // Build directories and populate them in sorted order.
     config.dirs = {
-        let mut dirs: Vec<Dir> = Vec::new();
-
         let dirs_map: DirMap = toml::from_str(&buf)?;
+
+        let mut dirs: Vec<Dir> = Vec::with_capacity(dirs_map.dirs.len());
 
         for (id, mut dir) in dirs_map.dirs {
             dir.id = id;
