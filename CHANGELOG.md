@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-+ Added lots of improved error handling with more helpful error messages.
++ Added support for remote presets with `-p/--presets`.
+  + Presets are defined in `$HOME/.config/bsrc/presets.toml`.
++ Added lots of improved error reporting.
 
 ## [0.4.1] - 2026-02-22
 
