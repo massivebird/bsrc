@@ -45,17 +45,13 @@ $ ln -rs ./target/release/bsrc <dir-in-PATH>/bsrc
 $ bsrc
 ```
 
-## Usage
+## Features
 
-Basic bsrc syntax is as follows:
++ Regular expression support
++ Remote file system queries with `-r/--remote`
++ Customizable output formats and search behavior
 
-```bash
-bsrc <query>
-```
-
-For more information, run `bsrc --help`.
-
-<h3 id="config">Configuration</h3>
+<h2 id="config">Configuration</h2>
 
 bsrc is configured with `bsrc.toml`.
 
