@@ -85,3 +85,26 @@ path = "wbfs"
 color = "#0cab30"
 match_dirs = false
 ```
+
+### Presets
+
+Presets are shortcuts to your directories that contain a `bsrc.toml`! See: `-p/--preset`.
+
+Remote presets define `user` and `host` credentials for SSH public key authentication.
+
+```toml
+# $HOME/.config/bsrc/presets.toml
+
+# All presets are defined with `[presets.<id>]`.
+# Use a preset with `-p/--preset <id>`.
+
+# Local preset, path only
+[presets.movies]
+path = "/home/user/movies/"
+
+# Remote preset, with user@host creds
+[presets.games]
+host = "192.168.x.xxx"
+user = "user"
+path = "/H:/game-archive/" # Windows file system path
+```
