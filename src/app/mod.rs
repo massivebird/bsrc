@@ -10,10 +10,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use self::{
-    dir::Dir,
-    parser::Preset,
-};
+use self::{dir::Dir, parser::Preset};
 
 mod cli;
 pub mod config;
@@ -81,11 +78,15 @@ pub fn build() -> Result<App, eyre::Report> {
 
     let preset = if let Some(preset_id) = get_arg("preset") {
         Some(
-            parser::get_preset(Path::new("/home/penguino/.config/bsrc/"))?
-                .iter()
-                .find(|p| p.id == *preset_id)
-                .cloned()
-                .wrap_err(eyre::eyre!("no such preset: [presets.{preset_id}]"))?,
+            parser::get_preset(
+                &Path::new(&std::env::var("HOME")?)
+                    .join(".config")
+                    .join("bsrc"),
+            )?
+            .iter()
+            .find(|p| p.id == *preset_id)
+            .cloned()
+            .wrap_err(eyre::eyre!("no such preset: [presets.{preset_id}]"))?,
         )
     } else {
         None
