@@ -115,6 +115,7 @@ pub fn build() -> clap::Command {
             Arg::new("identity")
                 .short('i')
                 .value_name("identity_file")
+                .requires("remote")
                 .value_parser(clap::builder::PathBufValueParser::new())
                 .help("Path to an SSH identity file.")
                 .long_help(IDENTITY_LONG_HELP),
