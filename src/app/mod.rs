@@ -142,7 +142,7 @@ impl App {
 }
 
 /// Returns `Err` if the server does not match one in `known_hosts`.
-fn validate_host(sesh: &Session, host: &str) -> Result<(), eyre::Report> {
+fn reject_host_if_unknown(sesh: &Session, host: &str) -> Result<(), eyre::Report> {
     let mut known_hosts = sesh.known_hosts()?;
 
     // Initialize the known hosts with a global known hosts file
@@ -199,8 +199,7 @@ fn build_remote(
         sesh
     };
 
-    // Reject the host if it's unknown.
-    validate_host(&sesh, host)?;
+    reject_host_if_unknown(&sesh, host)?;
 
     let private_key: PathBuf = if let Some(path) = matches.get_one::<PathBuf>("identity") {
         path.into()
