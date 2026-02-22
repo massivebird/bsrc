@@ -91,37 +91,20 @@ impl App {
         };
 
         let remote = if let Some(remote) = get_arg("remote") {
-            let (user, host) = remote.split_once('@').unwrap();
+            let (user, host): (&str, &str) = remote.split_once('@').unwrap();
 
-            let tcp = TcpStream::connect(format!("{host}:22")).unwrap();
-            let mut sess = Session::new().unwrap();
-            sess.set_tcp_stream(tcp);
-            sess.handshake().unwrap();
+            let sesh: Session = {
+                let mut sesh = Session::new().unwrap();
+                sesh.set_tcp_stream(TcpStream::connect(format!("{host}:22")).unwrap());
+                sesh.handshake().unwrap();
 
-            let mut known_hosts = sess.known_hosts().unwrap();
+                sesh
+            };
 
-            // Initialize the known hosts with a global known hosts file
-            let hosts_path: PathBuf =
-                Path::new(&env::var("HOME").unwrap()).join(".ssh/known_hosts");
+            // Reject the host if it's unknown.
+            validate_host(&sesh, host)?;
 
-            known_hosts
-                .read_file(&hosts_path, ssh2::KnownHostFileKind::OpenSSH)
-                .unwrap();
-
-            let (key, _key_type) = sess.host_key().ok_or("Failed to get host key").unwrap();
-
-            // Require that the server is in `known_hosts` and is legit.
-            match known_hosts.check(host, key) {
-                CheckResult::Match => (),
-                _ => {
-                    return Err(eyre::eyre!(
-                        "Failed to find host in {}.",
-                        hosts_path.display()
-                    ));
-                }
-            }
-
-            let private_key = matches.get_one::<PathBuf>("identity").map_or_else(
+            let private_key: PathBuf = matches.get_one::<PathBuf>("identity").map_or_else(
                 || {
                     Path::new(&std::env::var("HOME").unwrap())
                         .join(".ssh")
@@ -130,9 +113,9 @@ impl App {
                 std::convert::Into::into,
             );
 
-            sess.userauth_pubkey_file(user, None, &private_key, None)?;
+            sesh.userauth_pubkey_file(user, None, &private_key, None)?;
 
-            Some(Arc::new(Mutex::new(sess.sftp()?)))
+            Some(Arc::new(Mutex::new(sesh.sftp()?)))
         } else {
             None
         };
@@ -172,6 +155,33 @@ impl App {
             remote_client: remote,
         })
     }
+}
+
+/// Returns `Err` if the server does not match one in `known_hosts`.
+fn validate_host(sesh: &Session, host: &str) -> Result<(), eyre::Report> {
+    let mut known_hosts = sesh.known_hosts().unwrap();
+
+    // Initialize the known hosts with a global known hosts file
+    let hosts_path: PathBuf = Path::new(&env::var("HOME").unwrap()).join(".ssh/known_hosts");
+
+    known_hosts
+        .read_file(&hosts_path, ssh2::KnownHostFileKind::OpenSSH)
+        .unwrap();
+
+    let (key, _key_type) = sesh.host_key().ok_or("Failed to get host key").unwrap();
+
+    // Require that the server is in `known_hosts` and is legit.
+    match known_hosts.check(host, key) {
+        CheckResult::Match => (),
+        _ => {
+            return Err(eyre::eyre!(
+                "unknown host: failed to find host in {}.",
+                hosts_path.display()
+            ));
+        }
+    }
+
+    Ok(())
 }
 
 pub fn warn_msg(msg: &str) {
