@@ -10,7 +10,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use self::{dir::Dir, parser::Preset};
+use self::{
+    dir::Dir,
+    parser::Preset,
+};
 
 mod cli;
 pub mod config;
@@ -78,7 +81,7 @@ pub fn build() -> Result<App, eyre::Report> {
 
     let preset = if let Some(preset_id) = get_arg("preset") {
         Some(
-            parser::read_presets(Path::new("/home/penguino/.config/bsrc/"))?
+            parser::get_preset(Path::new("/home/penguino/.config/bsrc/"))?
                 .iter()
                 .find(|p| p.id == *preset_id)
                 .cloned()
@@ -89,7 +92,7 @@ pub fn build() -> Result<App, eyre::Report> {
     };
 
     let root: PathBuf = if let Some(ref preset) = preset {
-        preset.path.clone().into()
+        preset.path.clone()
     } else if let Some(query) = get_arg("query")
         && matches.get_flag("all")
     {
@@ -143,12 +146,14 @@ fn build_remote(
     remote: Option<&String>,
     matches: &clap::ArgMatches,
 ) -> Result<Option<Arc<Mutex<ssh2::Sftp>>>, eyre::Report> {
-    if preset.is_none() && remote.is_none() {
+    if preset.is_none_or(|p| p.remote_creds.is_none()) && remote.is_none() {
         return Ok(None);
     }
 
-    let (user, host) = if let Some(preset) = preset {
-        (&preset.user[..], &preset.host[..])
+    let (user, host) = if let Some(preset) = preset
+        && let Some(creds) = &preset.remote_creds
+    {
+        (&creds.user[..], &creds.host[..])
     } else if let Some(remote) = remote {
         remote
             .split_once('@')

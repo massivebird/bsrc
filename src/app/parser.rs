@@ -89,7 +89,9 @@ pub fn find_toml(root: &Path, filename: &str) -> eyre::Result<PathBuf> {
         return Ok(root.join(filename));
     }
 
-    warn_msg(&format!("Searching for `{filename}` in parent directories..."));
+    warn_msg(&format!(
+        "Searching for `{filename}` in parent directories..."
+    ));
 
     for _ in 0..4 {
         let maybe_toml = root.join(filename);
@@ -151,11 +153,17 @@ pub(super) fn default_output_fmt() -> String {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Preset {
-    pub host: String,
-    pub user: String,
-    pub path: String,
+    pub path: PathBuf,
+    #[serde(flatten)]
+    pub remote_creds: Option<RemoteCreds>,
     #[serde(skip)]
     pub id: String,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct RemoteCreds {
+    pub host: String,
+    pub user: String,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -163,7 +171,7 @@ struct PresetMap {
     presets: std::collections::HashMap<String, Preset>,
 }
 
-pub fn read_presets(root: &Path) -> Result<Vec<Preset>, eyre::Report> {
+pub fn get_preset(root: &Path) -> Result<Vec<Preset>, eyre::Report> {
     let mut buf = String::new();
 
     let toml_path: PathBuf = find_toml(root, "presets.toml")?;
