@@ -1,5 +1,5 @@
 use colored::Colorize;
-use eyre::{Context, ContextCompat, OptionExt};
+use eyre::{ContextCompat, OptionExt};
 use regex::Regex;
 use ssh2::{CheckResult, Session};
 use std::{
