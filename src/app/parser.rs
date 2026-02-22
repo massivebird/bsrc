@@ -11,11 +11,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-#[derive(Deserialize, Clone, Debug)]
-struct DirMap {
-    dirs: std::collections::HashMap<String, Dir>,
-}
-
 /// Reads `bsrc.toml` at the specified directory.
 ///
 /// # Params
@@ -50,7 +45,14 @@ pub fn from_toml_path(
 
     // Build directories and populate them in sorted order.
     config.dirs = {
-        let dirs_map: DirMap = toml::from_str(&buf)?;
+        let dirs_map = {
+            #[derive(Deserialize)]
+            struct DirMap {
+                dirs: std::collections::HashMap<String, Dir>,
+            }
+
+            toml::from_str::<DirMap>(&buf)?
+        };
 
         let mut dirs: Vec<Dir> = Vec::with_capacity(dirs_map.dirs.len());
 
@@ -166,11 +168,6 @@ pub struct RemoteCreds {
     pub user: String,
 }
 
-#[derive(Deserialize, Clone, Debug)]
-struct PresetMap {
-    presets: std::collections::HashMap<String, Preset>,
-}
-
 pub fn get_preset(root: &Path) -> Result<Vec<Preset>, eyre::Report> {
     let mut buf = String::new();
 
@@ -181,7 +178,14 @@ pub fn get_preset(root: &Path) -> Result<Vec<Preset>, eyre::Report> {
 
     f.read_to_string(&mut buf)?;
 
-    let presets_map: PresetMap = toml::from_str(&buf)?;
+    let presets_map = {
+        #[derive(Deserialize)]
+        struct PresetMap {
+            presets: std::collections::HashMap<String, Preset>,
+        }
+
+        toml::from_str::<PresetMap>(&buf)?
+    };
 
     let mut presets = Vec::with_capacity(presets_map.presets.len());
 
