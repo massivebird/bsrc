@@ -19,6 +19,12 @@ bsrc's suite of command line options also let you customize search and output be
 
 bsrc is especially great for large archives or libraries of games, music, or books!
 
+## Features
+
++ Regular expression support
++ Remote file system queries with `-r/--remote`
++ Customizable output formats and search behavior
+
 ## Building
 
 To manually build the project, you must first [install Rust](https://www.rust-lang.org/tools/install).
@@ -44,12 +50,6 @@ $ cargo build --release
 $ ln -rs ./target/release/bsrc <dir-in-PATH>/bsrc
 $ bsrc
 ```
-
-## Features
-
-+ Regular expression support
-+ Remote file system queries with `-r/--remote`
-+ Customizable output formats and search behavior
 
 <h2 id="config">Configuration</h2>
 
