@@ -38,7 +38,7 @@ pub fn from_toml_path(
 
         toml.read_to_string(&mut buf)?;
     } else {
-        let toml_path: PathBuf = find_toml(path)?;
+        let toml_path: PathBuf = find_toml(path, "bsrc.toml")?;
 
         let mut f = std::fs::File::open(&toml_path)
             .wrap_err_with(|| format!("Failed to read config from {}", toml_path.display()))?;
@@ -82,17 +82,17 @@ pub fn from_toml_path(
 /// # Errors
 ///
 /// Returns `Err` if the file cannot be found.
-pub fn find_toml(root: &Path) -> eyre::Result<PathBuf> {
+pub fn find_toml(root: &Path, filename: &str) -> eyre::Result<PathBuf> {
     let mut root = root;
 
-    if exists(root.join("bsrc.toml")).is_ok_and(|b| b) {
-        return Ok(root.join("bsrc.toml"));
+    if exists(root.join(filename)).is_ok_and(|b| b) {
+        return Ok(root.join(filename));
     }
 
-    warn_msg("Searching for bsrc.toml in parent directories...");
+    warn_msg(&format!("Searching for `{filename}` in parent directories..."));
 
     for _ in 0..4 {
-        let maybe_toml = root.join("bsrc.toml");
+        let maybe_toml = root.join(filename);
 
         if exists(&maybe_toml).is_ok_and(|exists| exists) {
             return Ok(maybe_toml);
@@ -106,7 +106,7 @@ pub fn find_toml(root: &Path) -> eyre::Result<PathBuf> {
     }
 
     Err(eyre::eyre!(
-        "Failed to locate `bsrc.toml` in current or parent directories."
+        "Failed to locate `{filename}` in current or parent directories."
     ))
 }
 
@@ -147,4 +147,40 @@ pub(super) const fn default_color() -> [u8; 3] {
 
 pub(super) fn default_output_fmt() -> String {
     "%p: %f".to_owned()
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct Preset {
+    pub host: String,
+    pub user: String,
+    pub path: String,
+    #[serde(skip)]
+    pub id: String,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+struct PresetMap {
+    presets: std::collections::HashMap<String, Preset>,
+}
+
+pub fn read_presets(root: &Path) -> Result<Vec<Preset>, eyre::Report> {
+    let mut buf = String::new();
+
+    let toml_path: PathBuf = find_toml(root, "presets.toml")?;
+
+    let mut f = std::fs::File::open(&toml_path)
+        .wrap_err_with(|| format!("Failed to read config from {}", toml_path.display()))?;
+
+    f.read_to_string(&mut buf)?;
+
+    let presets_map: PresetMap = toml::from_str(&buf)?;
+
+    let mut presets = Vec::with_capacity(presets_map.presets.len());
+
+    for (id, mut p) in presets_map.presets {
+        p.id = id;
+        presets.push(p);
+    }
+
+    Ok(presets)
 }

@@ -78,24 +78,42 @@ impl App {
             Regex::new(&format!("{opts}{raw_query}"))?
         };
 
-        // Trying to handle `--all` with a path argument, where the path is
-        // stored in the `query` positional argument. Copy it over.
-        let root: PathBuf = if let Some(query) = get_arg("query")
-            && matches.get_flag("all")
-        {
-            // See above
-            PathBuf::from(query)
-        } else {
-            get_arg("root").map_or(
-                std::env::current_dir()?,
-                PathBuf::from,
+        let preset = if let Some(preset_id) = get_arg("preset") {
+            Some(
+                parser::read_presets(Path::new("/home/penguino/.config/bsrc/"))?
+                    .iter()
+                    .find(|p| p.id == *preset_id)
+                    .cloned()
+                    .wrap_err(eyre::eyre!("no such preset: [presets.{preset_id}]"))?,
             )
+        } else {
+            None
         };
 
-        let remote: Option<_> = if let Some(remote) = get_arg("remote") {
-            let (user, host): (&str, &str) = remote
-                .split_once('@')
-                .wrap_err("unexpected remote address format. Example: user@hostname")?;
+        let root: PathBuf = if let Some(ref preset) = preset {
+            preset.path.clone().into()
+        } else if let Some(query) = get_arg("query")
+            && matches.get_flag("all")
+        {
+            // Trying to handle `--all` with a path argument, where the path is
+            // stored in the `query` positional argument. Copy it over.
+            PathBuf::from(query)
+        } else {
+            get_arg("root").map_or(std::env::current_dir()?, PathBuf::from)
+        };
+
+        let remote: Option<_> = if preset.is_some() || get_arg("remote").is_some() {
+            let remote = get_arg("remote");
+
+            let (user, host) = if let Some(ref preset) = preset {
+                (&preset.user[..], &preset.host[..])
+            } else if let Some(remote) = remote {
+                remote
+                    .split_once('@')
+                    .wrap_err("unexpected remote address format. Example: user@hostname")?
+            } else {
+                unreachable!();
+            };
 
             let sesh: Session = {
                 let mut sesh = Session::new()?;

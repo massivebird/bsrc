@@ -106,6 +106,11 @@ pub fn build() -> clap::Command {
         ])
         .next_help_heading("Remote settings")
         .args([
+            Arg::new("preset")
+                .short('p')
+                .long("preset")
+                .conflicts_with_all(["remote", "root"])
+                .value_name("preset_id"),
             Arg::new("remote")
                 .short('r')
                 .long("remote")
