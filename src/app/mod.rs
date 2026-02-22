@@ -101,9 +101,11 @@ impl App {
             let mut known_hosts = sess.known_hosts().unwrap();
 
             // Initialize the known hosts with a global known hosts file
-            let file = Path::new(&env::var("HOME").unwrap()).join(".ssh/known_hosts");
+            let hosts_path: PathBuf =
+                Path::new(&env::var("HOME").unwrap()).join(".ssh/known_hosts");
+
             known_hosts
-                .read_file(&file, ssh2::KnownHostFileKind::OpenSSH)
+                .read_file(&hosts_path, ssh2::KnownHostFileKind::OpenSSH)
                 .unwrap();
 
             let (key, _key_type) = sess.host_key().ok_or("Failed to get host key").unwrap();
@@ -111,7 +113,12 @@ impl App {
             // Require that the server is in `known_hosts` and is legit.
             match known_hosts.check(host, key) {
                 CheckResult::Match => (),
-                _ => panic!("not a match"),
+                _ => {
+                    return Err(eyre::eyre!(
+                        "Failed to find host in {}.",
+                        hosts_path.display()
+                    ));
+                }
             }
 
             let private_key = matches.get_one::<PathBuf>("identity").map_or_else(
