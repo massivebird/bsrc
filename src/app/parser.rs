@@ -3,7 +3,6 @@ use colored::Colorize;
 use eyre::Context;
 use regex::Regex;
 use serde::{Deserialize, Deserializer, de::Error};
-use ssh2::Sftp;
 use std::{
     borrow::Cow,
     fs::exists,
@@ -17,48 +16,56 @@ struct DirMap {
     dirs: std::collections::HashMap<String, Dir>,
 }
 
+/// Reads `bsrc.toml` at the specified directory.
+///
+/// # Params
+///
+/// `remote_client` is used to query a remote file system.
+/// Use `None` if you are querying local files.
 pub fn from_toml_path(
-    root: &Path,
-    client: Option<Arc<Mutex<Sftp>>>,
+    path: &Path,
+    remote_client: Option<Arc<Mutex<ssh2::Sftp>>>,
 ) -> Result<Config, eyre::Report> {
     let mut buf = String::new();
 
-    if let Some(client) = client {
+    // Read the toml contents either remotely or locally.
+    if let Some(client) = remote_client {
         let mut toml = client
             .lock()
             .unwrap()
-            .open(&root.join("bsrc.toml"))
+            .open(path.join("bsrc.toml"))
             .expect("Failed to locate bsrc.toml at the specified path.");
 
-        toml.read_to_string(&mut buf)
-            .wrap_err("Failed to read contents of TOML config file.")?;
+        toml.read_to_string(&mut buf)?;
     } else {
-        // Full path to the toml config file.
-        let toml_path: PathBuf = find_toml_path(root)?;
+        let toml_path: PathBuf = find_toml(path)?;
 
         let mut f = std::fs::File::open(&toml_path)
             .wrap_err_with(|| format!("Failed to read config from {}", toml_path.display()))?;
 
-        f.read_to_string(&mut buf)
-            .wrap_err("Failed to read contents of TOML config file.")?;
+        f.read_to_string(&mut buf)?;
     }
 
-    let dirs_map: DirMap = toml::from_str(&buf)?;
+    let mut config: Config = toml::from_str(&buf)?;
 
-    let mut config: Config = match toml::from_str(&buf) {
-        Ok(c) => c,
-        Err(e) => {
-            panic!("{e}");
-        }
-    };
-
-    // Insert directories in sorted order
+    // Build directories and populate them in sorted order.
     config.dirs = {
         let mut dirs: Vec<Dir> = Vec::new();
 
-        for (id, mut d) in dirs_map.dirs {
-            d.id = id;
-            dirs.push(d);
+        let dirs_map: DirMap = toml::from_str(&buf)?;
+
+        for (id, mut dir) in dirs_map.dirs {
+            dir.id = id;
+
+            // Build colored prefixes.
+            dir.color_prefix = dir
+                .raw_prefix
+                .truecolor(dir.color[0], dir.color[1], dir.color[2]);
+
+            // Make all paths absolute.
+            dir.path = path.join(&dir.path);
+
+            dirs.push(dir);
         }
 
         dirs.sort_by_key(|d| d.id.clone());
@@ -66,21 +73,16 @@ pub fn from_toml_path(
         dirs
     };
 
-    for dir in &mut config.dirs {
-        // Build colored prefixes.
-        dir.color_prefix = dir
-            .raw_prefix
-            .truecolor(dir.color[0], dir.color[1], dir.color[2]);
-
-        // Make all paths absolute.
-        dir.path = root.join(&dir.path);
-    }
-
     Ok(config)
 }
 
-/// Searches for `bsrc.toml` in root and (some) parent directories.
-pub fn find_toml_path(root: &Path) -> eyre::Result<PathBuf> {
+/// Returns the path to `bsrc.toml`. Performs limited upward searches if
+/// the file isn't immediately present.
+///
+/// # Errors
+///
+/// Returns `Err` if the file cannot be found.
+pub fn find_toml(root: &Path) -> eyre::Result<PathBuf> {
     let mut root = root;
 
     if exists(root.join("bsrc.toml")).is_ok_and(|b| b) {

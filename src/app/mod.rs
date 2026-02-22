@@ -75,8 +75,7 @@ impl App {
                 "(?i)"
             };
 
-            Regex::new(&format!("{opts}{raw_query}"))
-                .wrap_err_with(|| "Failed to parse query expression.".to_string())?
+            Regex::new(&format!("{opts}{raw_query}"))?
         };
 
         // Trying to handle `--all` with a path argument, where the path is
@@ -88,18 +87,20 @@ impl App {
             PathBuf::from(query)
         } else {
             get_arg("root").map_or(
-                std::env::current_dir().wrap_err("Failed to retrieve current directory.")?,
+                std::env::current_dir()?,
                 PathBuf::from,
             )
         };
 
-        let remote = if let Some(remote) = get_arg("remote") {
-            let (user, host): (&str, &str) = remote.split_once('@').unwrap();
+        let remote: Option<_> = if let Some(remote) = get_arg("remote") {
+            let (user, host): (&str, &str) = remote
+                .split_once('@')
+                .wrap_err("unexpected remote address format. Example: user@hostname")?;
 
             let sesh: Session = {
-                let mut sesh = Session::new().unwrap();
-                sesh.set_tcp_stream(TcpStream::connect(format!("{host}:22")).unwrap());
-                sesh.handshake().unwrap();
+                let mut sesh = Session::new()?;
+                sesh.set_tcp_stream(TcpStream::connect(format!("{host}:22"))?);
+                sesh.handshake()?;
 
                 sesh
             };
@@ -107,14 +108,13 @@ impl App {
             // Reject the host if it's unknown.
             validate_host(&sesh, host)?;
 
-            let private_key: PathBuf = matches.get_one::<PathBuf>("identity").map_or_else(
-                || {
-                    Path::new(&std::env::var("HOME").unwrap())
-                        .join(".ssh")
-                        .join("id_rsa")
-                },
-                std::convert::Into::into,
-            );
+            let private_key: PathBuf = if let Some(path) = matches.get_one::<PathBuf>("identity") {
+                path.into()
+            } else {
+                Path::new(&std::env::var("HOME")?)
+                    .join(".ssh")
+                    .join("id_rsa")
+            };
 
             sesh.userauth_pubkey_file(user, None, &private_key, None)?;
 
@@ -123,7 +123,7 @@ impl App {
             None
         };
 
-        let mut config = parser::from_toml_path(&root, remote.clone())?;
+        let mut config: Config = parser::from_toml_path(&root, remote.clone())?;
 
         // Filter non-existent directories.
         config.dirs.retain(|dir| {
@@ -162,16 +162,16 @@ impl App {
 
 /// Returns `Err` if the server does not match one in `known_hosts`.
 fn validate_host(sesh: &Session, host: &str) -> Result<(), eyre::Report> {
-    let mut known_hosts = sesh.known_hosts().unwrap();
+    let mut known_hosts = sesh.known_hosts()?;
 
     // Initialize the known hosts with a global known hosts file
-    let hosts_path: PathBuf = Path::new(&env::var("HOME").unwrap()).join(".ssh/known_hosts");
+    let hosts_path: PathBuf = Path::new(&env::var("HOME")?).join(".ssh/known_hosts");
 
-    known_hosts
-        .read_file(&hosts_path, ssh2::KnownHostFileKind::OpenSSH)
-        .unwrap();
+    known_hosts.read_file(&hosts_path, ssh2::KnownHostFileKind::OpenSSH)?;
 
-    let (key, _key_type) = sesh.host_key().ok_or("Failed to get host key").unwrap();
+    let (key, _key_type) = sesh
+        .host_key()
+        .wrap_err("failed to fetch key from remote server")?;
 
     // Require that the server is in `known_hosts` and is legit.
     match known_hosts.check(host, key) {

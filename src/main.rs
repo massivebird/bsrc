@@ -11,27 +11,28 @@ async fn main() -> eyre::Result<()> {
     // (1) Spawn an async task for each dir. Push each handle to the back.
     // (2) Pop the front handle when its task is completed.
     // This way, we know exactly which dir corresponds to which handle.
-    let mut handles = VecDeque::new();
+    let mut handles: VecDeque<tokio::task::JoinHandle<_>> =
+        VecDeque::with_capacity(app.config.dirs.len());
 
     let query = Query::from(&app);
 
     for dir in app.config.dirs.clone() {
-        let query = query.clone();
-        let remote = app.remote_client.clone();
+        let query: Query = query.clone();
+        let remote: Option<_> = app.remote_client.clone();
         handles.push_back(tokio::spawn(async move { query.run(&dir, remote) }));
     }
 
-    let mut total_matches: u32 = 0;
+    let mut total_matches = 0u32;
 
     // Locates placeholders in user-provided output format string.
-    let fmt_re = Regex::new(r"%[pf]").unwrap();
+    let fmt_re = Regex::new(r"%[pf]")?;
 
     for dir in app.config.dirs {
-        let mut matches = handles.pop_front().unwrap().await.unwrap();
+        let mut matches: Vec<String> = handles.pop_front().unwrap().await?;
 
         matches.sort_unstable_by_key(|s| s.to_lowercase());
 
-        total_matches += u32::try_from(matches.len()).unwrap();
+        total_matches += u32::try_from(matches.len())?;
 
         if app.only_counts {
             println!("{}:{}", dir.color_prefix, matches.len());
