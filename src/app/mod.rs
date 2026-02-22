@@ -81,8 +81,11 @@ impl App {
 
         // Trying to handle `--all` with a path argument, where the path is
         // stored in the `query` positional argument. Copy it over.
-        let root = if matches.get_flag("all") && get_arg("query").is_some() {
-            PathBuf::from(get_arg("query").unwrap())
+        let root: PathBuf = if let Some(query) = get_arg("query")
+            && matches.get_flag("all")
+        {
+            // See above
+            PathBuf::from(query)
         } else {
             get_arg("root").map_or(
                 std::env::current_dir().wrap_err("Failed to retrieve current directory.")?,
