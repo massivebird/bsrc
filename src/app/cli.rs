@@ -19,6 +19,16 @@ bsrc --only gba,snes,ds \"metal\"";
 static EXCLUDE_LONG_HELP: &str = "\
 Excludes specified directories from the search. See `-o/--only`.";
 
+static REMOTE_LONG_HELP: &str = "\
+Specify the user and address credentials if you want to query a remote directory.
+
+Uses OpenSSH public key authentication. Your client's public key must already be present on the server.";
+
+static IDENTITY_LONG_HELP: &str = "\
+Path to an SSH identity file (private key).
+
+Defaults to `$HOME/.ssh/id_rsa`.";
+
 pub fn build() -> clap::Command {
     clap::command!()
         .args_conflicts_with_subcommands(true)
@@ -96,8 +106,17 @@ pub fn build() -> clap::Command {
         ])
         .next_help_heading("Remote settings")
         .args([
-            Arg::new("user").short('u').long("user").requires("pass"),
-            Arg::new("pass").short('p').long("pass").requires("addr"),
-            Arg::new("addr").long("addr").requires("user"),
+            Arg::new("remote")
+                .short('r')
+                .long("remote")
+                .value_name("user@host")
+                .help("Credentials of the remote machine to query.")
+                .long_help(REMOTE_LONG_HELP),
+            Arg::new("identity")
+                .short('i')
+                .value_name("identity_file")
+                .value_parser(clap::builder::PathBufValueParser::new())
+                .help("Path to an SSH identity file.")
+                .long_help(IDENTITY_LONG_HELP),
         ])
 }

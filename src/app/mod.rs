@@ -1,10 +1,12 @@
 use colored::Colorize;
 use eyre::{Context, ContextCompat, OptionExt};
 use regex::Regex;
-use remotefs_ssh::SftpFs;
+use ssh2::{CheckResult, Session};
 use std::{
+    env,
     fs::exists,
-    path::PathBuf,
+    net::TcpStream,
+    path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
 
@@ -25,7 +27,7 @@ pub struct App {
     pub no_count_output: bool,
     pub no_clean: bool,
     pub no_ignore: bool,
-    pub remote_client: Option<Arc<Mutex<SftpFs>>>,
+    pub remote_client: Option<Arc<Mutex<ssh2::Sftp>>>,
 }
 
 impl App {
@@ -88,25 +90,42 @@ impl App {
             )
         };
 
-        let remote = if let Some(user) = get_arg("user") {
-            use remotefs::RemoteFs;
-            use remotefs_ssh::{SftpFs, SshConfigParseRule, SshOpts};
+        let remote = if let Some(remote) = get_arg("remote") {
+            let (user, host) = remote.split_once('@').unwrap();
 
-            let mut client: SftpFs = SshOpts::new(get_arg("addr").unwrap())
-                .port(22)
-                .username(user)
-                .password(get_arg("pass").unwrap())
-                .config_file(
-                    std::path::Path::new("/home/penguino/.ssh/config"),
-                    SshConfigParseRule::STRICT,
-                )
-                .into();
+            let tcp = TcpStream::connect(format!("{host}:22")).unwrap();
+            let mut sess = Session::new().unwrap();
+            sess.set_tcp_stream(tcp);
+            sess.handshake().unwrap();
 
-            client
-                .connect()
-                .wrap_err("Failed to connect to the remote machine")?;
+            let mut known_hosts = sess.known_hosts().unwrap();
 
-            Some(Arc::new(Mutex::new(client)))
+            // Initialize the known hosts with a global known hosts file
+            let file = Path::new(&env::var("HOME").unwrap()).join(".ssh/known_hosts");
+            known_hosts
+                .read_file(&file, ssh2::KnownHostFileKind::OpenSSH)
+                .unwrap();
+
+            let (key, _key_type) = sess.host_key().ok_or("Failed to get host key").unwrap();
+
+            // Require that the server is in `known_hosts` and is legit.
+            match known_hosts.check(host, key) {
+                CheckResult::Match => (),
+                _ => panic!("not a match"),
+            }
+
+            let private_key = matches.get_one::<PathBuf>("identity").map_or_else(
+                || {
+                    Path::new(&std::env::var("HOME").unwrap())
+                        .join(".ssh")
+                        .join("id_rsa")
+                },
+                std::convert::Into::into,
+            );
+
+            sess.userauth_pubkey_file(user, None, &private_key, None)?;
+
+            Some(Arc::new(Mutex::new(sess.sftp()?)))
         } else {
             None
         };

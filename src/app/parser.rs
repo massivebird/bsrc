@@ -2,9 +2,8 @@ use crate::app::{Config, Dir, warn_msg};
 use colored::Colorize;
 use eyre::Context;
 use regex::Regex;
-use remotefs::RemoteFs;
-use remotefs_ssh::SftpFs;
 use serde::{Deserialize, Deserializer, de::Error};
+use ssh2::Sftp;
 use std::{
     borrow::Cow,
     fs::exists,
@@ -20,7 +19,7 @@ struct DirMap {
 
 pub fn from_toml_path(
     root: &Path,
-    client: Option<Arc<Mutex<SftpFs>>>,
+    client: Option<Arc<Mutex<Sftp>>>,
 ) -> Result<Config, eyre::Report> {
     let mut buf = String::new();
 

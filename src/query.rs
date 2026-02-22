@@ -1,8 +1,8 @@
 use crate::{App, Dir};
 use regex::Regex;
-use remotefs_ssh::SftpFs;
+use ssh2::Sftp;
 use std::{
-    path::Path,
+    path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
 
@@ -89,7 +89,7 @@ impl Query {
     }
 
     #[must_use]
-    pub fn run(&self, dir: &Dir, client: Option<Arc<Mutex<SftpFs>>>) -> Vec<String> {
+    pub fn run(&self, dir: &Dir, client: Option<Arc<Mutex<Sftp>>>) -> Vec<String> {
         client.map_or_else(
             || self.run_local(dir),
             |client| self.run_remote(dir, &client),
@@ -110,20 +110,14 @@ impl Query {
         matches
     }
 
-    fn run_remote(&self, dir: &Dir, client: &Arc<Mutex<SftpFs>>) -> Vec<String> {
-        use remotefs::RemoteFs;
-
+    fn run_remote(&self, dir: &Dir, client: &Arc<Mutex<Sftp>>) -> Vec<String> {
         let mut matches: Vec<String> = Vec::new();
 
-        let files: Vec<remotefs::File> = client.lock().unwrap().list_dir(&dir.path).unwrap();
+        let files: Vec<(PathBuf, ssh2::FileStat)> =
+            client.lock().unwrap().readdir(&dir.path).unwrap();
 
-        for file in files {
-            if let Some(filename) = Self::matching_filename(
-                self,
-                dir,
-                Path::new(file.path()),
-                file.metadata().is_file(),
-            ) {
+        for (path, file_stat) in files {
+            if let Some(filename) = Self::matching_filename(self, dir, &path, file_stat.is_file()) {
                 matches.push(filename);
             }
         }
