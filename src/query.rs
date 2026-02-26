@@ -3,7 +3,7 @@ use regex::Regex;
 use ssh2::Sftp;
 use std::{
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
 
 #[derive(Debug, Clone)]
@@ -89,7 +89,7 @@ impl Query {
     }
 
     #[must_use]
-    pub fn run(&self, dir: &Dir, client: Option<Arc<Mutex<Sftp>>>) -> Vec<String> {
+    pub fn run(&self, dir: &Dir, client: Option<Arc<Sftp>>) -> Vec<String> {
         client.map_or_else(
             || self.run_local(dir),
             |client| self.run_remote(dir, &client),
@@ -110,11 +110,11 @@ impl Query {
         matches
     }
 
-    fn run_remote(&self, dir: &Dir, client: &Arc<Mutex<Sftp>>) -> Vec<String> {
+    fn run_remote(&self, dir: &Dir, client: &Arc<Sftp>) -> Vec<String> {
         let mut matches: Vec<String> = Vec::new();
 
         let files: Vec<(PathBuf, ssh2::FileStat)> =
-            client.lock().unwrap().readdir(&dir.path).unwrap();
+            client.readdir(&dir.path).unwrap();
 
         for (path, file_stat) in files {
             if let Some(filename) = Self::matching_filename(self, dir, &path, file_stat.is_file()) {

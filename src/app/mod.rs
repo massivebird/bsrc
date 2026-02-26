@@ -7,7 +7,7 @@ use std::{
     fs::exists,
     net::TcpStream,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
 
 use self::{dir::Dir, parser::Preset};
@@ -27,7 +27,7 @@ pub struct App {
     pub no_count_output: bool,
     pub no_clean: bool,
     pub no_ignore: bool,
-    pub remote_client: Option<Arc<Mutex<ssh2::Sftp>>>,
+    pub remote_client: Option<Arc<ssh2::Sftp>>,
 }
 
 /// # Errors
@@ -146,7 +146,7 @@ fn build_remote(
     preset: Option<&Preset>,
     remote: Option<&String>,
     matches: &clap::ArgMatches,
-) -> Result<Option<Arc<Mutex<ssh2::Sftp>>>, eyre::Report> {
+) -> Result<Option<Arc<ssh2::Sftp>>, eyre::Report> {
     if preset.is_none_or(|p| p.remote_creds.is_none()) && remote.is_none() {
         return Ok(None);
     }
@@ -183,7 +183,7 @@ fn build_remote(
 
     sesh.userauth_pubkey_file(user, None, &private_key, None)?;
 
-    Ok(Some(Arc::new(Mutex::new(sesh.sftp()?))))
+    Ok(Some(Arc::new(sesh.sftp()?)))
 }
 
 /// Returns `Err` if the server does not match one in `known_hosts`.

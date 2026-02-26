@@ -8,7 +8,7 @@ use std::{
     fs::exists,
     io::Read,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
 
 /// Reads `bsrc.toml` at the specified directory.
@@ -19,15 +19,13 @@ use std::{
 /// Use `None` if you are querying local files.
 pub fn from_toml_path(
     path: &Path,
-    remote_client: Option<Arc<Mutex<ssh2::Sftp>>>,
+    remote_client: Option<Arc<ssh2::Sftp>>,
 ) -> Result<Config, eyre::Report> {
     let mut buf = String::new();
 
     // Read the toml contents either remotely or locally.
     if let Some(client) = remote_client {
         let mut toml = client
-            .lock()
-            .unwrap()
             .open(path.join("bsrc.toml"))
             .expect("Failed to locate bsrc.toml at the specified path.");
 
