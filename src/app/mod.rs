@@ -125,12 +125,14 @@ pub fn build() -> Result<App, eyre::Report> {
     });
 
     // Optionally filter directories.
-    if let Some(ids) = get_arg("only") {
+    if let Some(inc_ids) = get_arg("only") {
         config
             .dirs
-            .retain(|d| ids.split(&[',', ' ']).any(|id| id == d.id));
-    } else if let Some(ids) = get_arg("exclude") {
-        config.dirs.retain(|d| !ids.contains(&d.id));
+            .retain(|d| inc_ids.split(&[',', ' ']).any(|id| id == d.id));
+    } else if let Some(not_ids) = get_arg("exclude") {
+        config
+            .dirs
+            .retain(|d| !not_ids.split(&[',', ' ']).any(|id| id == d.id));
     }
 
     Ok(App {
