@@ -56,6 +56,7 @@ async fn main() -> eyre::Result<()> {
     }
 
     if app.no_count_output || app.only_counts {
+        println!("{total_matches}");
         return Ok(());
     }
 
