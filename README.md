@@ -78,6 +78,7 @@ prefix = "SNES"
 path = "snes"
 color = "#5930cc"  # Optional: prefix color in hex format
 match_dirs = false # Optional: if true, matches directories instead of files
+extension = "snes" # Optional: files must have this extension to match
 
 [dirs.wii]
 prefix = "WII"

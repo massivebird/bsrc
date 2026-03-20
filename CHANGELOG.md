@@ -5,11 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.3] - 2026-03-19
+
+### Added
+
++ Added support for the optional `extension = <string>` directory field, which defines a required file extension for matching files.
 
 ### Fixed
 
 + Fixed matching logic, queries now match against whitespace-trimmed filenames.
++ Fixed `-o` flag, now functions as expected.
 
 ## [0.4.2] - 2026-02-22
 
