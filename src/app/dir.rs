@@ -17,6 +17,9 @@ pub struct Dir {
     #[serde(deserialize_with = "parser::deserialize_hex")]
     pub color: [u8; 3],
 
+    #[serde(default)]
+    pub extension: Option<String>,
+
     #[serde(skip)]
     pub color_prefix: ColoredString,
     #[serde(skip)]

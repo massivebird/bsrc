@@ -100,6 +100,16 @@ impl Query {
         let mut matches: Vec<String> = Vec::new();
 
         for entry in dir.path.read_dir().unwrap().filter_map(Result::ok) {
+            // Skip this file if it doesn't have the required extension.
+            if let Some(ext_req) = &dir.extension
+                && entry
+                    .path()
+                    .extension()
+                    .is_none_or(|fe| !fe.eq_ignore_ascii_case(ext_req))
+            {
+                continue;
+            }
+
             if let Some(filename) =
                 Self::matching_filename(self, dir, &entry.path(), entry.path().is_file())
             {
@@ -113,10 +123,18 @@ impl Query {
     fn run_remote(&self, dir: &Dir, client: &Arc<Sftp>) -> Vec<String> {
         let mut matches: Vec<String> = Vec::new();
 
-        let files: Vec<(PathBuf, ssh2::FileStat)> =
-            client.readdir(&dir.path).unwrap();
+        let files: Vec<(PathBuf, ssh2::FileStat)> = client.readdir(&dir.path).unwrap();
 
         for (path, file_stat) in files {
+            // Skip this file if it doesn't have the required extension.
+            if let Some(ext_req) = &dir.extension
+                && path
+                    .extension()
+                    .is_none_or(|fe| !fe.eq_ignore_ascii_case(ext_req))
+            {
+                continue;
+            }
+
             if let Some(filename) = Self::matching_filename(self, dir, &path, file_stat.is_file()) {
                 matches.push(filename);
             }
