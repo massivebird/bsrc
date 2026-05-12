@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 + Added a line at the bottom of `-c` that prints the total number of matches.
 
+### Changed
+
++ Changed output to "# results found", previously "# matches found".
+
 ## [0.4.4] - 2026-03-19
 
 ### Fixed
