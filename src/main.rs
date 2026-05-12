@@ -63,8 +63,8 @@ async fn main() -> eyre::Result<()> {
     println!(
         "{total_matches} {noun} found.",
         noun = match total_matches {
-            1 => "match",
-            _ => "matches",
+            1 => "result",
+            _ => "results",
         }
     );
 
