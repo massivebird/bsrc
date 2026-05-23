@@ -15,10 +15,15 @@ pub struct Query {
     pub no_ignore: bool,
 }
 
-// Just here for convenience
 impl Default for Query {
     fn default() -> Self {
         Self {
+            // I'm sorry, I hate this but it's just so convenient. If the user
+            // uses `--all` then an empty regex will match every item.
+            // Way simpler to work with than an `Option<Regex>`. I think it's
+            // reasonable for now. Maybe rework later if it's a computational
+            // waste.
+            #[allow(clippy::trivial_regex)]
             query: Regex::new("").unwrap(),
             clean: Option::default(),
             ignore: Option::default(),
