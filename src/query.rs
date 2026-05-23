@@ -192,7 +192,7 @@ impl Query {
 
 impl From<&App> for Query {
     fn from(value: &App) -> Self {
-        let mut query = Self::new(value.query.clone());
+        let mut query = Self::new(value.regex.clone());
 
         if let Some(pat) = &value.config.ignore
             && !value.no_ignore

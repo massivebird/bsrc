@@ -21,7 +21,7 @@ pub use config::Config;
 
 #[derive(Clone)]
 pub struct App {
-    pub query: Regex,
+    pub regex: Regex,
     pub config: Config,
     pub only_counts: bool,
     pub no_count_output: bool,
@@ -136,7 +136,7 @@ pub fn build() -> Result<App, eyre::Report> {
     }
 
     Ok(App {
-        query,
+        regex: query,
         config,
         only_counts: matches.get_flag("count"),
         no_count_output: matches.get_flag("no_count"),
