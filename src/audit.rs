@@ -1,19 +1,18 @@
+use crate::app::Dir;
+use ssh2::Sftp;
 use std::collections::VecDeque;
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use ssh2::Sftp;
-
-use crate::app::Dir;
-
+/// Audit entry point. Performs an audit and prints any output to the console.
 pub async fn report_audit(app: crate::app::App) -> std::io::Result<()> {
     let mut handles: VecDeque<tokio::task::JoinHandle<_>> =
         VecDeque::with_capacity(app.config.dirs.len());
 
     for dir in app.config.dirs.clone() {
         let remote: Option<_> = app.remote_client.clone();
-        handles.push_back(tokio::spawn(async move { run(&dir, remote) }));
+        handles.push_back(tokio::spawn(async move { audit_bus(&dir, remote) }));
     }
 
     for dir in app.config.dirs {
@@ -29,11 +28,20 @@ pub async fn report_audit(app: crate::app::App) -> std::io::Result<()> {
     Ok(())
 }
 
-fn run(dir: &Dir, client: Option<Arc<Sftp>>) -> Vec<String> {
-    client.map_or_else(|| run_local(dir), |client| run_remote(dir, &client))
+/// Initiates an audit for the archive, which is either:
+///
+/// (1) Local with no client, or
+/// (2) Remote with a remote client.
+fn audit_bus(dir: &Dir, client: Option<Arc<Sftp>>) -> Vec<String> {
+    client.map_or_else(|| audit_local(dir), |client| audit_remote(dir, &client))
 }
 
-fn run_local(dir: &Dir) -> Vec<String> {
+/// Uniformly formats an audit message for the filename, pushing it to `msgs`.
+fn push_with_desc(msgs: &mut Vec<String>, filename: &OsStr, desc: &str) {
+    msgs.push(format!("{desc}: {}", filename.display()));
+}
+
+fn audit_local(dir: &Dir) -> Vec<String> {
     let mut msgs: Vec<String> = Vec::new();
 
     for entry in dir.path.read_dir().unwrap().filter_map(Result::ok) {
@@ -54,7 +62,7 @@ fn run_local(dir: &Dir) -> Vec<String> {
     msgs
 }
 
-fn run_remote(dir: &Dir, client: &Arc<Sftp>) -> Vec<String> {
+fn audit_remote(dir: &Dir, client: &Arc<Sftp>) -> Vec<String> {
     let mut msgs: Vec<String> = Vec::new();
 
     let files: Vec<(PathBuf, ssh2::FileStat)> = client.readdir(&dir.path).unwrap();
@@ -81,8 +89,4 @@ fn run_remote(dir: &Dir, client: &Arc<Sftp>) -> Vec<String> {
     }
 
     msgs
-}
-
-fn push_with_desc(msgs: &mut Vec<String>, filename: &OsStr, desc: &str) {
-    msgs.push(format!("{desc}: {}", filename.display()));
 }
