@@ -15,7 +15,9 @@ use self::config::Config;
 
 mod cli;
 pub mod config;
-pub mod dir;
+mod dir;
+
+pub use dir::Dir;
 
 #[derive(Clone)]
 pub struct App {

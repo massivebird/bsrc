@@ -1,12 +1,14 @@
-use bsrc::Query;
 use regex::Regex;
 use std::collections::VecDeque;
 
+use self::query::Query;
+
 mod app;
+mod query;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
-    let app = bsrc::app::build()?;
+    let app = app::build()?;
 
     // Holds async task handles, one for each directory.
     // Iterate through `dirs` twice, in the same direction:

@@ -1,11 +1,10 @@
+use super::{App, dir::Dir};
 use regex::Regex;
 use ssh2::Sftp;
 use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
-
-use crate::app::{App, Dir};
 
 #[derive(Debug, Clone)]
 pub struct Query {
