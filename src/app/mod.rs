@@ -1,3 +1,4 @@
+use crate::app::config::parser;
 use colored::Colorize;
 use eyre::{ContextCompat, OptionExt};
 use regex::Regex;
@@ -10,14 +11,11 @@ use std::{
     sync::Arc,
 };
 
-use self::{dir::Dir, parser::Preset};
+use self::config::Config;
 
 mod cli;
 pub mod config;
 pub mod dir;
-pub mod parser;
-
-pub use config::Config;
 
 #[derive(Clone)]
 pub struct App {
@@ -147,7 +145,7 @@ pub fn build() -> Result<App, eyre::Report> {
 }
 
 fn build_remote(
-    preset: Option<&Preset>,
+    preset: Option<&parser::Preset>,
     remote: Option<&String>,
     matches: &clap::ArgMatches,
 ) -> Result<Option<Arc<ssh2::Sftp>>, eyre::Report> {

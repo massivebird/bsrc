@@ -1,6 +1,9 @@
-use super::{Dir, parser};
 use regex::Regex;
 use serde::Deserialize;
+
+use crate::app::dir::Dir;
+
+pub mod parser;
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Config {

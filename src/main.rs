@@ -2,6 +2,8 @@ use bsrc::Query;
 use regex::Regex;
 use std::collections::VecDeque;
 
+mod app;
+
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     let app = bsrc::app::build()?;

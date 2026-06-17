@@ -1,4 +1,3 @@
-use crate::app::{Config, Dir, warn_msg};
 use colored::Colorize;
 use eyre::Context;
 use regex::Regex;
@@ -10,6 +9,10 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
+
+use crate::app::warn_msg;
+
+use super::Config;
 
 /// Reads `bsrc.toml` at the specified directory.
 ///
@@ -46,13 +49,13 @@ pub fn from_toml_path(
         let dirs_map = {
             #[derive(Deserialize)]
             struct DirMap {
-                dirs: std::collections::HashMap<String, Dir>,
+                dirs: std::collections::HashMap<String, super::Dir>,
             }
 
             toml::from_str::<DirMap>(&buf)?
         };
 
-        let mut dirs: Vec<Dir> = Vec::with_capacity(dirs_map.dirs.len());
+        let mut dirs: Vec<super::Dir> = Vec::with_capacity(dirs_map.dirs.len());
 
         for (id, mut dir) in dirs_map.dirs {
             dir.id = id;
@@ -113,7 +116,7 @@ pub fn find_toml(root: &Path, filename: &str) -> eyre::Result<PathBuf> {
 }
 
 /// Deserializes hex color strings into rgb values.
-pub(super) fn deserialize_hex<'de, D>(deserializer: D) -> Result<[u8; 3], D::Error>
+pub(crate) fn deserialize_hex<'de, D>(deserializer: D) -> Result<[u8; 3], D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -134,7 +137,7 @@ where
 }
 
 /// Deserializes regex strings into `regex::Regex` instances.
-pub(super) fn deserialize_regex<'de, D>(deserializer: D) -> Result<Option<Regex>, D::Error>
+pub(crate) fn deserialize_regex<'de, D>(deserializer: D) -> Result<Option<Regex>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -143,10 +146,12 @@ where
     Regex::new(&buf).map_err(serde::de::Error::custom).map(Some)
 }
 
-pub(super) const fn default_color() -> [u8; 3] {
+#[must_use]
+pub const fn default_color() -> [u8; 3] {
     [255, 255, 255]
 }
 
+#[must_use]
 pub(super) fn default_output_fmt() -> String {
     "%p: %f".to_owned()
 }

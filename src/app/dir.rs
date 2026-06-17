@@ -1,4 +1,4 @@
-use super::parser;
+use crate::app::config::parser;
 use colored::ColoredString;
 use serde::Deserialize;
 
