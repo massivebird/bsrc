@@ -4,11 +4,19 @@ use std::collections::VecDeque;
 use self::query::Query;
 
 mod app;
+mod audit;
 mod query;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     let app = app::build()?;
+
+    if app.audit_mode {
+        println!("{}: Starting audit!", std::env!("CARGO_CRATE_NAME"));
+        audit::report_audit(app).await?;
+        println!("{}: Audit complete.", std::env!("CARGO_CRATE_NAME"));
+        std::process::exit(0);
+    }
 
     // Holds async task handles, one for each directory.
     // Iterate through `dirs` twice, in the same direction:

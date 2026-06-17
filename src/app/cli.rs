@@ -1,6 +1,6 @@
 use clap::Arg;
 
-static QUERY_LONG_HELP: &str = "\
+static ROOT_LONG_HELP: &str = "\
 A directory to start searching from. Defaults to the current directory.
 
 Must contain a valid `bsrc.toml` at its root.";
@@ -44,6 +44,11 @@ pub fn build() -> clap::Command {
                         ),
                 ),
         )
+        .subcommand(
+            clap::Command::new("audit").args([Arg::new("root")
+                .value_name("PATH")
+                .long_help(ROOT_LONG_HELP)]),
+        )
         .next_help_heading("Positional arguments")
         .args([
             Arg::new("query")
@@ -52,7 +57,7 @@ pub fn build() -> clap::Command {
                 .help("A regular expression query."),
             Arg::new("root")
                 .value_name("PATH")
-                .long_help(QUERY_LONG_HELP),
+                .long_help(ROOT_LONG_HELP),
         ])
         .next_help_heading("Search options")
         .args([

@@ -27,6 +27,7 @@ pub struct App {
     pub no_count_output: bool,
     pub no_clean: bool,
     pub no_ignore: bool,
+    pub audit_mode: bool,
     pub remote_client: Option<Arc<ssh2::Sftp>>,
 }
 
@@ -60,7 +61,7 @@ pub fn build() -> Result<App, eyre::Report> {
     let get_arg = |arg_name: &str| -> Option<&String> { matches.get_one::<String>(arg_name) };
 
     let query: Regex = {
-        let raw_query = if matches.get_flag("all") {
+        let raw_query = if matches.get_flag("all") || matches.subcommand_name() == Some("audit") {
             "."
         } else {
             get_arg("query").ok_or_eyre("Internal error: failed to retrieve `query` argument.")?
@@ -101,7 +102,13 @@ pub fn build() -> Result<App, eyre::Report> {
         // stored in the `query` positional argument. Copy it over.
         PathBuf::from(query)
     } else {
-        get_arg("root").map_or(std::env::current_dir()?, PathBuf::from)
+        get_arg("root")
+            .or_else(|| {
+                matches
+                    .subcommand_matches("audit")
+                    .and_then(|am| am.get_one::<String>("root"))
+            })
+            .map_or(std::env::current_dir()?, PathBuf::from)
     };
 
     let remote: Option<_> = build_remote(preset.as_ref(), get_arg("remote"), &matches)?;
@@ -135,15 +142,18 @@ pub fn build() -> Result<App, eyre::Report> {
             .retain(|d| !not_ids.split(&[',', ' ']).any(|id| id == d.id));
     }
 
-    Ok(App {
+    let app = App {
         regex: query,
         config,
         only_counts: matches.get_flag("count"),
         no_count_output: matches.get_flag("no_count"),
         no_clean: matches.get_flag("no_clean"),
         no_ignore: matches.get_flag("no_ignore"),
+        audit_mode: matches.subcommand_name() == Some("audit"),
         remote_client: remote,
-    })
+    };
+
+    Ok(app)
 }
 
 fn build_remote(
