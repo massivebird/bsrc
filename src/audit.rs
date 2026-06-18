@@ -1,8 +1,6 @@
 use crate::app::Dir;
 use ssh2::Sftp;
 use std::collections::VecDeque;
-use std::ffi::OsStr;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 /// Audit entry point. Performs an audit and prints any output to the console.
@@ -37,8 +35,33 @@ fn audit_bus(dir: &Dir, client: Option<Arc<Sftp>>) -> Vec<String> {
 }
 
 /// Uniformly formats an audit message for the filename, pushing it to `msgs`.
-fn push_with_desc(msgs: &mut Vec<String>, filename: &OsStr, desc: &str) {
+fn push_with_desc(msgs: &mut Vec<String>, filename: &std::ffi::OsStr, desc: &str) {
     msgs.push(format!("{desc}: {}", filename.display()));
+}
+
+/// Pushes a message to `msgs` if this file should be reported in the audit.
+///
+/// This function is the shared logic between local and remote audits, which
+/// acquire these parameters in different ways.
+fn audit_core(
+    msgs: &mut Vec<String>,
+    filename: &std::ffi::OsStr,
+    path: &std::path::Path,
+    dir: &Dir,
+) {
+    // Report this file if any of the following:
+
+    // File is hidden.
+    if filename.to_string_lossy().starts_with('.') {
+        push_with_desc(msgs, filename, "hidden");
+    // File does not have the required extension (if one exists).
+    } else if let Some(ext_req) = &dir.extension
+        && path
+            .extension()
+            .is_none_or(|ext| !ext.eq_ignore_ascii_case(ext_req))
+    {
+        push_with_desc(msgs, filename, "non-matched");
+    }
 }
 
 fn audit_local(dir: &Dir) -> Vec<String> {
@@ -47,16 +70,7 @@ fn audit_local(dir: &Dir) -> Vec<String> {
     for entry in dir.path.read_dir().unwrap().filter_map(Result::ok) {
         let filename = entry.file_name();
 
-        if entry.file_name().to_string_lossy().starts_with('.') {
-            push_with_desc(&mut msgs, &filename, "hidden");
-        } else if let Some(ext_req) = &dir.extension
-            && entry
-                .path()
-                .extension()
-                .is_none_or(|fe| !fe.eq_ignore_ascii_case(ext_req))
-        {
-            push_with_desc(&mut msgs, &filename, "non-matched");
-        }
+        audit_core(&mut msgs, &filename, &entry.path(), dir);
     }
 
     msgs
@@ -65,7 +79,7 @@ fn audit_local(dir: &Dir) -> Vec<String> {
 fn audit_remote(dir: &Dir, client: &Arc<Sftp>) -> Vec<String> {
     let mut msgs: Vec<String> = Vec::new();
 
-    let files: Vec<(PathBuf, ssh2::FileStat)> = client.readdir(&dir.path).unwrap();
+    let files: Vec<(std::path::PathBuf, ssh2::FileStat)> = client.readdir(&dir.path).unwrap();
 
     for (path, _file_stat) in files {
         let Some(filename) = path.file_name() else {
@@ -77,15 +91,7 @@ fn audit_remote(dir: &Dir, client: &Arc<Sftp>) -> Vec<String> {
             continue;
         };
 
-        if filename.to_string_lossy().starts_with('.') {
-            push_with_desc(&mut msgs, filename, "hidden");
-        } else if let Some(ext_req) = &dir.extension
-            && path
-                .extension()
-                .is_none_or(|fe| !fe.eq_ignore_ascii_case(ext_req))
-        {
-            push_with_desc(&mut msgs, filename, "non-matched");
-        }
+        audit_core(&mut msgs, filename, &path, dir);
     }
 
     msgs
